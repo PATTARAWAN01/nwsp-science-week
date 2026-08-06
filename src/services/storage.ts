@@ -195,70 +195,55 @@ export const setAcademicYear = async (year: string): Promise<void> => {
   setLocal<string>(STORAGE_KEYS.CURRENT_YEAR, year);
 };
 
-// Get Activities (Cloud Firebase sync with Local fallback)
+// Get Activities (3-Way Merge: Baseline Templates + LocalStorage + Cloud Firestore)
 export const getActivities = async (year?: string): Promise<Activity[]> => {
   const targetYear = year || getAcademicYear();
   
+  // 1. Initialize Baseline Activities for target year
+  let baseActivities: Activity[] = targetYear === '2569'
+    ? INITIAL_ACTIVITIES
+    : INITIAL_ACTIVITIES.map(baseAct => ({
+        ...baseAct,
+        id: `${baseAct.id}-${targetYear}`,
+        academicYear: targetYear,
+        isOpen: true,
+        createdAt: new Date().toISOString()
+      }));
+
+  const activityMap = new Map<string, Activity>();
+  baseActivities.forEach(act => activityMap.set(act.id, act));
+
+  // 2. Overlay LocalStorage edits
+  const localList = getLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, []);
+  localList.filter(act => act.academicYear === targetYear).forEach(act => {
+    activityMap.set(act.id, act);
+  });
+
+  // 3. Overlay Cloud Firestore updates
   if (isFirebaseConfigured() && db) {
     try {
       const q = query(collection(db, 'activities'), where('academicYear', '==', targetYear));
       const querySnapshot = await fetchWithTimeout(getDocs(q), 2500);
-      const cloudActivities: Activity[] = [];
       querySnapshot.forEach((docSnap) => {
-        cloudActivities.push(docSnap.data() as Activity);
-      });
-
-      if (cloudActivities.length > 0) {
-        setLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, cloudActivities);
-        return cloudActivities;
-      } else {
-        // Cloud Firestore is empty for this academic year -> Seed default activities to Firestore
-        const defaultActs: Activity[] = targetYear === '2569'
-          ? INITIAL_ACTIVITIES
-          : INITIAL_ACTIVITIES.map(baseAct => ({
-              ...baseAct,
-              id: `${baseAct.id}-${targetYear}`,
-              academicYear: targetYear,
-              isOpen: true,
-              createdAt: new Date().toISOString()
-            }));
-
-        for (const act of defaultActs) {
-          try {
-            await setDoc(doc(db, 'activities', act.id), act);
-          } catch (e) {
-            console.error("Failed to seed activity to Firestore:", e);
-          }
+        const cloudAct = docSnap.data() as Activity;
+        if (cloudAct && cloudAct.id) {
+          activityMap.set(cloudAct.id, cloudAct);
         }
-        setLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, defaultActs);
-        return defaultActs;
-      }
+      });
     } catch (err) {
-      console.warn("Firestore fetch activities failed, falling back to LocalStorage:", err);
+      console.warn("Firestore fetch activities warning:", err);
     }
   }
 
-  // Local Storage Fallback
-  let localList = getLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, []);
-  if (localList.length === 0) {
-    setLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, INITIAL_ACTIVITIES);
-    localList = INITIAL_ACTIVITIES;
-  }
-
-  let yearActivities = localList.filter(act => act.academicYear === targetYear);
-  return yearActivities;
+  const mergedActivities = Array.from(activityMap.values());
+  // Preserve initial template ordering (act-1, act-2, act-3...)
+  mergedActivities.sort((a, b) => a.id.localeCompare(b.id));
+  setLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, mergedActivities);
+  return mergedActivities;
 };
 
 export const saveActivity = async (activity: Activity): Promise<void> => {
-  if (isFirebaseConfigured() && db) {
-    try {
-      await setDoc(doc(db, 'activities', activity.id), activity);
-    } catch (err) {
-      console.error("Firestore save activity failed:", err);
-    }
-  }
-
-  // Update Local Storage
+  // Update Local Storage immediately for 0ms UI reactivity
   const list = getLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, INITIAL_ACTIVITIES);
   const idx = list.findIndex(a => a.id === activity.id);
   if (idx >= 0) {
@@ -267,9 +252,22 @@ export const saveActivity = async (activity: Activity): Promise<void> => {
     list.unshift(activity);
   }
   setLocal(STORAGE_KEYS.ACTIVITIES, list);
+
+  // Sync to Cloud Firestore
+  if (isFirebaseConfigured() && db) {
+    try {
+      await setDoc(doc(db, 'activities', activity.id), activity);
+    } catch (err) {
+      console.error("Firestore save activity failed:", err);
+    }
+  }
 };
 
 export const deleteActivity = async (id: string): Promise<void> => {
+  const list = getLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, INITIAL_ACTIVITIES);
+  const updated = list.filter(a => a.id !== id);
+  setLocal(STORAGE_KEYS.ACTIVITIES, updated);
+
   if (isFirebaseConfigured() && db) {
     try {
       await deleteDoc(doc(db, 'activities', id));
@@ -277,44 +275,38 @@ export const deleteActivity = async (id: string): Promise<void> => {
       console.error("Firestore delete activity failed:", err);
     }
   }
-
-  const list = getLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, INITIAL_ACTIVITIES);
-  const updated = list.filter(a => a.id !== id);
-  setLocal(STORAGE_KEYS.ACTIVITIES, updated);
 };
 
 // Registrations API
 export const getRegistrations = async (year?: string): Promise<Registration[]> => {
   const targetYear = year || getAcademicYear();
+  const regMap = new Map<string, Registration>();
 
+  // 1. LocalStorage registrations
+  const localList = getLocal<Registration[]>(STORAGE_KEYS.REGISTRATIONS, []);
+  localList.filter(r => r.academicYear === targetYear).forEach(r => regMap.set(r.id, r));
+
+  // 2. Cloud Firestore registrations
   if (isFirebaseConfigured() && db) {
     try {
       const q = query(collection(db, 'registrations'), where('academicYear', '==', targetYear));
       const querySnapshot = await fetchWithTimeout(getDocs(q), 2500);
-      const cloudData: Registration[] = [];
       querySnapshot.forEach((docSnap) => {
-        cloudData.push(docSnap.data() as Registration);
+        const cloudReg = docSnap.data() as Registration;
+        if (cloudReg && cloudReg.id) {
+          regMap.set(cloudReg.id, cloudReg);
+        }
       });
-      setLocal(STORAGE_KEYS.REGISTRATIONS, cloudData);
-      return cloudData;
     } catch (err) {
-      console.warn("Firestore fetch registrations failed, using LocalStorage:", err);
+      console.warn("Firestore fetch registrations warning:", err);
     }
   }
 
-  let list = getLocal<Registration[]>(STORAGE_KEYS.REGISTRATIONS, []);
-  return list.filter(r => r.academicYear === targetYear);
+  const merged = Array.from(regMap.values());
+  return merged;
 };
 
 export const saveRegistration = async (registration: Registration): Promise<void> => {
-  if (isFirebaseConfigured() && db) {
-    try {
-      await setDoc(doc(db, 'registrations', registration.id), registration);
-    } catch (err) {
-      console.error("Firestore save registration failed:", err);
-    }
-  }
-
   const list = getLocal<Registration[]>(STORAGE_KEYS.REGISTRATIONS, []);
   const idx = list.findIndex(r => r.id === registration.id);
   if (idx >= 0) {
@@ -323,9 +315,21 @@ export const saveRegistration = async (registration: Registration): Promise<void
     list.unshift(registration);
   }
   setLocal(STORAGE_KEYS.REGISTRATIONS, list);
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      await setDoc(doc(db, 'registrations', registration.id), registration);
+    } catch (err) {
+      console.error("Firestore save registration failed:", err);
+    }
+  }
 };
 
 export const deleteRegistration = async (id: string): Promise<void> => {
+  const list = getLocal<Registration[]>(STORAGE_KEYS.REGISTRATIONS, []);
+  const updated = list.filter(r => r.id !== id);
+  setLocal(STORAGE_KEYS.REGISTRATIONS, updated);
+
   if (isFirebaseConfigured() && db) {
     try {
       await deleteDoc(doc(db, 'registrations', id));
@@ -333,33 +337,35 @@ export const deleteRegistration = async (id: string): Promise<void> => {
       console.error("Firestore delete registration failed:", err);
     }
   }
-
-  const list = getLocal<Registration[]>(STORAGE_KEYS.REGISTRATIONS, []);
-  const updated = list.filter(r => r.id !== id);
-  setLocal(STORAGE_KEYS.REGISTRATIONS, updated);
 };
 
 // Results API
 export const getResults = async (year?: string): Promise<CompetitionResult[]> => {
   const targetYear = year || getAcademicYear();
+  const resMap = new Map<string, CompetitionResult>();
 
+  // 1. LocalStorage results
+  const localList = getLocal<CompetitionResult[]>(STORAGE_KEYS.RESULTS, []);
+  localList.filter(r => r.academicYear === targetYear).forEach(r => resMap.set(r.id, r));
+
+  // 2. Cloud Firestore results
   if (isFirebaseConfigured() && db) {
     try {
       const q = query(collection(db, 'results'), where('academicYear', '==', targetYear));
       const querySnapshot = await fetchWithTimeout(getDocs(q), 2500);
-      const cloudData: CompetitionResult[] = [];
       querySnapshot.forEach((docSnap) => {
-        cloudData.push(docSnap.data() as CompetitionResult);
+        const cloudRes = docSnap.data() as CompetitionResult;
+        if (cloudRes && cloudRes.id) {
+          resMap.set(cloudRes.id, cloudRes);
+        }
       });
-      setLocal(STORAGE_KEYS.RESULTS, cloudData);
-      return cloudData;
     } catch (err) {
-      console.warn("Firestore fetch results failed, using LocalStorage:", err);
+      console.warn("Firestore fetch results warning:", err);
     }
   }
 
-  let list = getLocal<CompetitionResult[]>(STORAGE_KEYS.RESULTS, []);
-  return list.filter(r => r.academicYear === targetYear);
+  const merged = Array.from(resMap.values());
+  return merged;
 };
 
 export const saveResult = async (result: CompetitionResult): Promise<void> => {
