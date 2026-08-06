@@ -23,6 +23,7 @@ export interface Activity {
   details: string;
   rules: string;
   awardsText: string;
+  order?: number; // ลำดับการแสดงผลหน้าแรก (1, 2, 3...)
   schedules: {
     junior?: ScheduleInfo;
     senior?: ScheduleInfo;

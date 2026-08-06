@@ -16,7 +16,9 @@ import {
   UserPlus,
   X,
   RefreshCw,
-  Power
+  Power,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 interface ActivityManagerProps {
@@ -165,6 +167,24 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
     }
   };
 
+  const handleMoveOrder = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= activities.length) return;
+
+    const currentAct = activities[index];
+    const targetAct = activities[targetIndex];
+
+    const currentOrder = currentAct.order ?? (index + 1);
+    const targetOrder = targetAct.order ?? (targetIndex + 1);
+
+    const updatedCurrent: Activity = { ...currentAct, order: targetOrder };
+    const updatedTarget: Activity = { ...targetAct, order: currentOrder };
+
+    await saveActivity(updatedCurrent);
+    await saveActivity(updatedTarget);
+    onRefresh();
+  };
+
   return (
     <div className="space-y-8 animate-fadeIn">
       
@@ -205,7 +225,7 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900">จัดการกิจกรรมการแข่งขัน ({activities.length} รายการ)</h2>
-          <p className="text-xs text-slate-500">เปิด-ปิดการรับสมัคร เพิ่ม แก้ไข ลบ กำหนดครูผู้ดูแล กติกา และรางวัลการแข่งขันประจำปี {academicYear}</p>
+          <p className="text-xs text-slate-500">จัดลำดับ เปิด-ปิดการรับสมัคร เพิ่ม แก้ไข ลบ กำหนดครูผู้ดูแล กติกา และรางวัลการแข่งขันประจำปี {academicYear}</p>
         </div>
 
         <button
@@ -219,15 +239,20 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
 
       {/* Activities Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {activities.map((act) => (
+        {activities.map((act, idx) => (
           <div key={act.id} className="glass-card p-6 rounded-3xl border border-white/80 flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                  act.type === 'team' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {act.type === 'team' ? `ทีม (${act.teamSize} คน)` : 'เดี่ยว (1 คน)'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-slate-800 text-white font-extrabold text-xs flex items-center justify-center">
+                    {idx + 1}
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    act.type === 'team' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {act.type === 'team' ? `ทีม (${act.teamSize} คน)` : 'เดี่ยว (1 คน)'}
+                  </span>
+                </div>
 
                 <button
                   onClick={() => handleToggleStatus(act)}
@@ -267,7 +292,29 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
                 ))}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                {/* 1-Click Up/Down Reorder Controls */}
+                <div className="flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => handleMoveOrder(idx, 'up')}
+                    className="p-1.5 bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800 disabled:opacity-30 disabled:hover:bg-slate-100 rounded-lg text-xs font-bold transition-colors"
+                    title="ขยับขึ้นด้านบน"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === activities.length - 1}
+                    onClick={() => handleMoveOrder(idx, 'down')}
+                    className="p-1.5 bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800 disabled:opacity-30 disabled:hover:bg-slate-100 rounded-lg text-xs font-bold transition-colors"
+                    title="ขยับลงด้านล่าง"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
                 <button
                   onClick={() => handleOpenEdit(act)}
                   className="px-3 py-1.5 bg-sky-50 text-sky-700 hover:bg-sky-100 rounded-xl text-xs font-bold transition-colors flex items-center gap-1"
