@@ -190,6 +190,11 @@ const setLocal = <T>(key: string, value: T): void => {
   }
 };
 
+// Helper to sanitize objects for Cloud Firestore (strips undefined values)
+const cleanForFirestore = <T>(obj: T): T => {
+  return JSON.parse(JSON.stringify(obj));
+};
+
 // --- Storage API Service --- //
 
 export const getAcademicYear = (): string => {
@@ -258,10 +263,11 @@ export const saveActivity = async (activity: Activity): Promise<void> => {
   }
   setLocal(STORAGE_KEYS.ACTIVITIES, list);
 
-  // Sync to Cloud Firestore
+  // Sync to Cloud Firestore (sanitized for Firestore)
   if (isFirebaseConfigured() && db) {
     try {
-      await setDoc(doc(db, 'activities', activity.id), activity);
+      const cleanData = cleanForFirestore(activity);
+      await setDoc(doc(db, 'activities', activity.id), cleanData);
     } catch (err) {
       console.error("Firestore save activity failed:", err);
     }
@@ -323,7 +329,8 @@ export const saveRegistration = async (registration: Registration): Promise<void
 
   if (isFirebaseConfigured() && db) {
     try {
-      await setDoc(doc(db, 'registrations', registration.id), registration);
+      const cleanData = cleanForFirestore(registration);
+      await setDoc(doc(db, 'registrations', registration.id), cleanData);
     } catch (err) {
       console.error("Firestore save registration failed:", err);
     }
@@ -385,7 +392,8 @@ export const saveResult = async (result: CompetitionResult): Promise<void> => {
 
   if (isFirebaseConfigured() && db) {
     try {
-      await setDoc(doc(db, 'results', result.id), result);
+      const cleanData = cleanForFirestore(result);
+      await setDoc(doc(db, 'results', result.id), cleanData);
     } catch (err) {
       console.error("Firestore save result failed:", err);
     }
@@ -450,8 +458,9 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
 
   if (isFirebaseConfigured() && db) {
     try {
+      const cleanData = cleanForFirestore(config);
       const docId = `${config.activityId}_${config.level}_${config.academicYear}`;
-      await setDoc(doc(db, 'certificate_configs', docId), config);
+      await setDoc(doc(db, 'certificate_configs', docId), cleanData);
     } catch (err) {
       console.error("Firestore save certificate config failed:", err);
     }
