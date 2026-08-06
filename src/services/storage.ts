@@ -369,15 +369,7 @@ export const getResults = async (year?: string): Promise<CompetitionResult[]> =>
 };
 
 export const saveResult = async (result: CompetitionResult): Promise<void> => {
-  if (isFirebaseConfigured() && db) {
-    try {
-      await setDoc(doc(db, 'results', result.id), result);
-    } catch (err) {
-      console.error("Firestore save result failed:", err);
-    }
-  }
-
-  const list = getLocal<CompetitionResult[]>(STORAGE_KEYS.RESULTS, INITIAL_RESULTS);
+  const list = getLocal<CompetitionResult[]>(STORAGE_KEYS.RESULTS, []);
   const idx = list.findIndex(r => r.id === result.id);
   if (idx >= 0) {
     list[idx] = result;
@@ -385,9 +377,21 @@ export const saveResult = async (result: CompetitionResult): Promise<void> => {
     list.unshift(result);
   }
   setLocal(STORAGE_KEYS.RESULTS, list);
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      await setDoc(doc(db, 'results', result.id), result);
+    } catch (err) {
+      console.error("Firestore save result failed:", err);
+    }
+  }
 };
 
 export const deleteResult = async (id: string): Promise<void> => {
+  const list = getLocal<CompetitionResult[]>(STORAGE_KEYS.RESULTS, []);
+  const updated = list.filter(r => r.id !== id);
+  setLocal(STORAGE_KEYS.RESULTS, updated);
+
   if (isFirebaseConfigured() && db) {
     try {
       await deleteDoc(doc(db, 'results', id));
@@ -395,16 +399,38 @@ export const deleteResult = async (id: string): Promise<void> => {
       console.error("Firestore delete result failed:", err);
     }
   }
-
-  const list = getLocal<CompetitionResult[]>(STORAGE_KEYS.RESULTS, []);
-  const updated = list.filter(r => r.id !== id);
-  setLocal(STORAGE_KEYS.RESULTS, updated);
 };
 
-// Certificate Config API
+// Certificate Config API (3-Way Merge: LocalStorage + Cloud Firestore)
 export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
-  let list = getLocal<CertificateConfig[]>(STORAGE_KEYS.CERT_CONFIGS, []);
-  return list;
+  const configMap = new Map<string, CertificateConfig>();
+
+  // 1. Local Storage
+  const localList = getLocal<CertificateConfig[]>(STORAGE_KEYS.CERT_CONFIGS, []);
+  localList.forEach(c => {
+    const key = `${c.activityId}-${c.level}-${c.academicYear}`;
+    configMap.set(key, c);
+  });
+
+  // 2. Cloud Firestore
+  if (isFirebaseConfigured() && db) {
+    try {
+      const querySnapshot = await fetchWithTimeout(getDocs(collection(db, 'certificate_configs')), 2500);
+      querySnapshot.forEach((docSnap) => {
+        const cloudConfig = docSnap.data() as CertificateConfig;
+        if (cloudConfig && cloudConfig.activityId) {
+          const key = `${cloudConfig.activityId}-${cloudConfig.level}-${cloudConfig.academicYear}`;
+          configMap.set(key, cloudConfig);
+        }
+      });
+    } catch (err) {
+      console.warn("Firestore fetch certificate configs warning:", err);
+    }
+  }
+
+  const merged = Array.from(configMap.values());
+  setLocal(STORAGE_KEYS.CERT_CONFIGS, merged);
+  return merged;
 };
 
 export const saveCertificateConfig = async (config: CertificateConfig): Promise<void> => {
@@ -416,6 +442,15 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
     list.push(config);
   }
   setLocal(STORAGE_KEYS.CERT_CONFIGS, list);
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const docId = `${config.activityId}_${config.level}_${config.academicYear}`;
+      await setDoc(doc(db, 'certificate_configs', docId), config);
+    } catch (err) {
+      console.error("Firestore save certificate config failed:", err);
+    }
+  }
 };
 
 // Admin Session Auth
