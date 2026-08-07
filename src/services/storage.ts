@@ -2,7 +2,8 @@ import {
   Activity, 
   Registration, 
   CompetitionResult, 
-  CertificateConfig 
+  CertificateConfig,
+  CertNumberConfig
 } from '../types';
 import { db, isFirebaseConfigured } from './firebase';
 import { 
@@ -477,5 +478,50 @@ export const setAdminAuth = (authenticated: boolean): void => {
     localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
   } else {
     localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+  }
+};
+
+// Certificate Number Sequence Settings API
+export const getCertNumberConfig = async (year?: string): Promise<CertNumberConfig> => {
+  const targetYear = year || getAcademicYear();
+  const storageKey = `nwsp_cert_num_config_${targetYear}`;
+  const defaultCfg: CertNumberConfig = {
+    prefix: 'เลขที่ ',
+    startingNumber: 1001,
+    suffix: `/${targetYear}`,
+    padding: 0
+  };
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const docSnap = await fetchWithTimeout(getDocs(query(collection(db, 'cert_num_configs'), where('academicYear', '==', targetYear))), 2000);
+      let cloudConfig: CertNumberConfig | null = null;
+      docSnap.forEach(d => {
+        cloudConfig = d.data() as CertNumberConfig;
+      });
+      if (cloudConfig) {
+        setLocal(storageKey, cloudConfig);
+        return cloudConfig;
+      }
+    } catch (err) {
+      console.warn("Firestore fetch cert number config warning:", err);
+    }
+  }
+
+  return getLocal<CertNumberConfig>(storageKey, defaultCfg);
+};
+
+export const saveCertNumberConfig = async (config: CertNumberConfig, year?: string): Promise<void> => {
+  const targetYear = year || getAcademicYear();
+  const storageKey = `nwsp_cert_num_config_${targetYear}`;
+  setLocal(storageKey, config);
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const cleanData = cleanForFirestore({ ...config, academicYear: targetYear });
+      await setDoc(doc(db, 'cert_num_configs', `config_${targetYear}`), cleanData);
+    } catch (err) {
+      console.error("Firestore save cert number config failed:", err);
+    }
   }
 };

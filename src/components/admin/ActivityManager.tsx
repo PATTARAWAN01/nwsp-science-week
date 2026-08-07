@@ -558,14 +558,29 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
                 )}
               </div>
 
+              {/* Details & Rules Rich Formatting Tip */}
+              <div className="bg-sky-50/90 p-3.5 rounded-2xl border border-sky-200 text-xs text-sky-950 space-y-1">
+                <div className="font-bold text-sky-900 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                  ทิปการตกแต่งข้อความ (หัวข้อตัวหนา & เคาะเว้นวรรค):
+                </div>
+                <p className="text-[11px] text-slate-700">
+                  • พิมพ์ <code className="bg-white px-1.5 py-0.5 rounded border border-sky-200 font-mono font-bold text-purple-700">**ข้อความ**</code> เพื่อทำให้กลายเป็น <strong className="font-extrabold text-slate-900">ตัวหนา</strong> (เช่น <span className="font-mono text-purple-700">**รายละเอียดการแข่ง:**</span>)
+                </p>
+                <p className="text-[11px] text-slate-700">
+                  • กด Enter เพื่อขึ้นบรรทัดใหม่ และเคาะ Spacebar เว้นวรรคข้อความได้ตามต้องการโดยระบบจะรักษาการเว้นวรรคไว้ทั้งหมด
+                </p>
+              </div>
+
               {/* Details */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">รายละเอียดกิจกรรม</label>
                 <textarea
-                  rows={3}
+                  rows={4}
+                  placeholder="เช่น **คุณสมบัติผู้แข่ง:** นักเรียน ม.1-3&#10;**การเตรียมตัว:** นำอุปกรณ์มาเอง"
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
-                  className="w-full glass-input p-3 rounded-xl text-sm border-slate-300"
+                  className="w-full glass-input p-3 rounded-xl text-sm border-slate-300 font-medium leading-relaxed whitespace-pre-wrap"
                 />
               </div>
 
@@ -573,10 +588,11 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">กติกาการแข่งขัน</label>
                 <textarea
-                  rows={3}
+                  rows={4}
+                  placeholder="เช่น **เกณฑ์ตัดสิน:**&#10;• ความสมบูรณ์ 50 คะแนน&#10;• ความตรงต่อเวลา 50 คะแนน"
                   value={rules}
                   onChange={(e) => setRules(e.target.value)}
-                  className="w-full glass-input p-3 rounded-xl text-sm border-slate-300"
+                  className="w-full glass-input p-3 rounded-xl text-sm border-slate-300 font-medium leading-relaxed whitespace-pre-wrap"
                 />
               </div>
 

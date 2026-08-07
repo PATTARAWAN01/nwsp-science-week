@@ -20,6 +20,31 @@ interface ActivityDetailsModalProps {
   onRegister: (activity: Activity) => void;
 }
 
+const renderFormattedContent = (content: string) => {
+  if (!content) return null;
+  return (
+    <div className="whitespace-pre-wrap leading-relaxed text-xs sm:text-sm text-slate-700 font-medium">
+      {content.split('\n').map((line, lineIdx) => {
+        const parts = line.split(/(\*\*.*?\*\*)/g);
+        return (
+          <div key={lineIdx} className="min-h-[1.25em]">
+            {parts.map((part, partIdx) => {
+              if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                return (
+                  <strong key={partIdx} className="font-extrabold text-slate-900">
+                    {part.slice(2, -2)}
+                  </strong>
+                );
+              }
+              return <span key={partIdx}>{part}</span>;
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
   isOpen,
   activity,
@@ -78,9 +103,7 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
               <FileText className="w-4 h-4 text-sky-600" strokeWidth={1.75} />
               รายละเอียดกิจกรรมการแข่งขัน
             </h4>
-            <div className="whitespace-pre-line leading-relaxed text-xs sm:text-sm text-slate-700 font-medium">
-              {activity.details}
-            </div>
+            {renderFormattedContent(activity.details)}
           </div>
 
           {/* Section 2: Rules */}
@@ -89,9 +112,7 @@ export const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
               <BookOpen className="w-4 h-4 text-purple-600" strokeWidth={1.75} />
               กติกาและเกณฑ์การตัดสิน
             </h4>
-            <div className="whitespace-pre-line leading-relaxed text-xs sm:text-sm text-slate-700 font-medium">
-              {activity.rules}
-            </div>
+            {renderFormattedContent(activity.rules)}
           </div>
 
           {/* Section 3: Schedule & Location */}

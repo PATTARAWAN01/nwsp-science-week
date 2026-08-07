@@ -92,3 +92,10 @@ export interface CertificateConfig {
     certId: TextPosition;
   };
 }
+
+export interface CertNumberConfig {
+  prefix: string; // e.g. "เลขที่ " or ""
+  startingNumber: number; // e.g. 1903
+  suffix: string; // e.g. "/2569"
+  padding: number; // e.g. 0 (no leading zeros) or 4 (0001)
+}
