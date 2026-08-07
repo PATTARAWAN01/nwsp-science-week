@@ -30,7 +30,7 @@ export const Hero: React.FC<HeroProps> = ({
           {/* Top Pill Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-cyan-200 shadow-sm shadow-cyan-500/10 text-xs sm:text-sm font-semibold text-cyan-800 animate-pulse">
             <Atom className="w-4 h-4 text-cyan-600 animate-spin-slow" />
-            <span>งานสัปดาห์วิทยาศาสตร์แห่งชาติ • โรงเรียนหนองวัวซอพิทยาคม</span>
+            <span>งานสัปดาห์วิทยาศาสตร์แห่งชาติ • โรงเรียน&#8203;หนองวัวซอ&#8203;พิทยาคม</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="text-emerald-700 font-bold">ปีการศึกษา {academicYear}</span>
           </div>
@@ -43,7 +43,7 @@ export const Hero: React.FC<HeroProps> = ({
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed">
-            ระบบรับสมัครการแข่งขันออนไลน์ สรุปผลรางวัล และดาวน์โหลดเกียรติบัตรสำหรับนักเรียนระดับชั้น ม.1 - ม.6 โรงเรียนหนองวัวซอพิทยาคม
+            ระบบรับสมัครการแข่งขันออนไลน์ สรุปผลรางวัล และดาวน์โหลดเกียรติบัตรสำหรับนักเรียนระดับชั้น ม.1 - ม.6 <span className="pointer-events-none inline-block">โรงเรียน&#8203;หนองวัวซอ&#8203;พิทยาคม</span>
           </p>
 
           {/* Quick Counter Badges */}

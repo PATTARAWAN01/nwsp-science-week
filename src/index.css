@@ -10,6 +10,22 @@
   }
 }
 
+/* Disable auto-detected address/map links on iOS Safari and Android Chrome */
+a[x-apple-data-detectors],
+a[href*="maps"],
+a[href*="google.com/maps"],
+a[href*="apple.com/maps"] {
+  color: inherit !important;
+  text-decoration: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  pointer-events: none !important;
+  cursor: default !important;
+  border-bottom: none !important;
+}
+
 /* Thai Font Family Classes for Certificate */
 .font-sarabun { font-family: 'Sarabun', sans-serif; }
 .font-prompt { font-family: 'Prompt', sans-serif; }
