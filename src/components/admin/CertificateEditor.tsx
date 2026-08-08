@@ -89,12 +89,43 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
     }
   }, [selectedActivityId, academicYear]);
 
+  const getFullAwardText = (awardStr: string) => {
+    if (awardStr === 'รางวัลชนะเลิศ') return 'ได้รับรางวัลชนะเลิศ';
+    if (awardStr === 'รางวัลรองชนะเลิศอันดับ 1') return 'ได้รับรางวัลรองชนะเลิศอันดับ 1';
+    if (awardStr === 'รางวัลรองชนะเลิศอันดับ 2') return 'ได้รับรางวัลรองชนะเลิศอันดับ 2';
+    if (awardStr === 'รางวัลชมเชย') return 'ได้รับรางวัลชมเชย';
+    if (awardStr === 'เข้าร่วมการแข่งขัน') return 'ได้เข้าร่วมการแข่งขัน';
+    if (awardStr.startsWith('ได้รับ') || awardStr.startsWith('ได้เข้าร่วม')) return awardStr;
+    return `ได้รับ${awardStr}`;
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setBgImageUrl(reader.result as string);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxWidth = 1920;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            setBgImageUrl(canvas.toDataURL('image/jpeg', 0.85));
+          } else {
+            setBgImageUrl(reader.result as string);
+          }
+        };
+        img.onerror = () => setBgImageUrl(reader.result as string);
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -438,7 +469,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                     color: positions.award.color
                   }}
                 >
-                  รางวัลชนะเลิศ (ตัวอย่างผลรางวัล)
+                  {getFullAwardText('รางวัลชนะเลิศ')} (ตัวอย่างผลรางวัล)
                 </div>
               )}
 

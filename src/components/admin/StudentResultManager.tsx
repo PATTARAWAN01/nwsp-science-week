@@ -432,7 +432,14 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
         setBatchProgress({ current: i + 1, total: studentsToExport.length, name: item.studentName });
 
         const canvas = await generateCertificateCanvas2D(item, batchCertConfig);
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        let imgData: string;
+        try {
+          imgData = canvas.toDataURL('image/jpeg', 0.95);
+        } catch (e) {
+          console.warn("Canvas export tainted, generating clean fallback canvas:", e);
+          const fallbackCanvas = await generateCertificateCanvas2D(item, { ...batchCertConfig, bgImageUrl: undefined });
+          imgData = fallbackCanvas.toDataURL('image/jpeg', 0.95);
+        }
 
         if (i > 0) {
           pdf.addPage('a4', 'landscape');

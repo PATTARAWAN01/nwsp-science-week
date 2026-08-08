@@ -265,13 +265,21 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       const canvas = await generateCertificateCanvas2D(item, previewCert.config);
       const fileName = `เกียรติบัตร_${previewCert.studentName}_${previewCert.result.activityTitle}`;
 
+      let imgData: string;
+      try {
+        imgData = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+      } catch (e) {
+        console.warn("Canvas export tainted, generating clean fallback canvas:", e);
+        const fallbackCanvas = await generateCertificateCanvas2D(item, { ...previewCert.config, bgImageUrl: undefined });
+        imgData = fallbackCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+      }
+
       if (format === 'png') {
         const link = document.createElement('a');
         link.download = `${fileName}.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.href = imgData;
         link.click();
       } else {
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
         const pdf = new jsPDF({
           orientation: 'landscape',
           unit: 'mm',
