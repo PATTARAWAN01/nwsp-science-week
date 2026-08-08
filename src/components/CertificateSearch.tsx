@@ -301,11 +301,11 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
               </p>
             </div>
 
-            {/* Live Render Container */}
+            {/* Live Render Container with Saved Certificate Configuration */}
             <div className="glass-panel p-2.5 rounded-2xl border border-slate-200 shadow-lg overflow-hidden flex justify-center bg-slate-100">
               <div
                 ref={printRef}
-                className={`w-full max-w-[800px] aspect-[1.414/1] bg-white relative rounded-xl overflow-hidden shadow-md flex flex-col items-center justify-between p-6 sm:p-8 text-slate-900 select-none ${getFontClass(previewCert.config?.fontFamily)}`}
+                className={`w-full max-w-[800px] aspect-[1.414/1] bg-white relative rounded-xl overflow-hidden shadow-md text-slate-900 select-none ${getFontClass(previewCert.config?.fontFamily)}`}
                 style={{
                   backgroundImage: previewCert.config?.bgImageUrl 
                     ? `url(${previewCert.config.bgImageUrl})` 
@@ -318,50 +318,132 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                   <div className="absolute inset-3 border-2 border-dashed border-sky-300 rounded-xl pointer-events-none" />
                 )}
 
-                {/* Header Logo */}
-                <div className="text-center pt-2 space-y-1 relative z-10">
-                  <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-purple-600 rounded-xl mx-auto p-0.5 shadow-sm">
-                    <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center text-sky-600 font-extrabold text-sm">
-                      NWSP
+                {/* Default Header Logo if no custom background */}
+                {!previewCert.config?.bgImageUrl && (
+                  <div className="text-center pt-4 space-y-1 relative z-10">
+                    <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-purple-600 rounded-xl mx-auto p-0.5 shadow-sm">
+                      <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center text-sky-600 font-extrabold text-sm">
+                        NWSP
+                      </div>
                     </div>
+                    <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-wide font-sans">
+                      โรงเรียนหนองวัวซอพิทยาคม
+                    </h1>
+                    <p className="text-xs font-medium text-slate-600">
+                      ขอมอบเกียรติบัตรฉบับนี้เพื่อแสดงว่า
+                    </p>
                   </div>
-                  <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-wide font-sans">
-                    โรงเรียนหนองวัวซอพิทยาคม
-                  </h1>
-                  <p className="text-xs font-medium text-slate-600">
-                    ขอมอบเกียรติบัตรฉบับนี้เพื่อแสดงว่า
-                  </p>
-                </div>
+                )}
 
-                {/* Student Name */}
-                <div className="text-center my-2 relative z-10 space-y-1">
-                  <h2 className="text-xl sm:text-3xl font-extrabold text-sky-900 tracking-wide">
+                {/* Configured Student Name */}
+                {(previewCert.config?.visibleElements?.studentName ?? true) && (
+                  <div
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap"
+                    style={previewCert.config?.positions?.studentName ? {
+                      left: `${previewCert.config.positions.studentName.x}%`,
+                      top: `${previewCert.config.positions.studentName.y}%`,
+                      fontSize: `${previewCert.config.positions.studentName.fontSize * 0.5}px`,
+                      color: previewCert.config.positions.studentName.color
+                    } : {
+                      left: '50%',
+                      top: '42%',
+                      fontSize: '18px',
+                      color: '#0c4a6e'
+                    }}
+                  >
                     {previewCert.studentName}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-700 max-w-lg mx-auto leading-relaxed">
-                    {previewCert.result.award === 'เข้าร่วมการแข่งขัน'
-                      ? `ได้เข้าร่วม ${previewCert.result.activityTitle} ${previewCert.result.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}`
-                      : `ได้รับ ${previewCert.result.award} ใน ${previewCert.result.activityTitle} ${previewCert.result.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}`}
-                    <br />
-                    <span className="text-xs text-slate-600 block mt-1">
-                      เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {previewCert.result.academicYear}
-                    </span>
-                  </p>
-                </div>
-
-                {/* Footer Signatures */}
-                <div className="w-full flex items-end justify-between px-4 pb-2 relative z-10 text-[10px] sm:text-xs text-slate-600">
-                  <div className="text-left space-y-0.5">
-                    <div>รหัสเกียรติบัตร: {previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`}</div>
                   </div>
+                )}
 
-                  <div className="text-center space-y-0.5">
+                {/* Configured Full Award Text */}
+                {(previewCert.config?.visibleElements?.award ?? true) && (
+                  <div
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap"
+                    style={previewCert.config?.positions?.award ? {
+                      left: `${previewCert.config.positions.award.x}%`,
+                      top: `${previewCert.config.positions.award.y}%`,
+                      fontSize: `${previewCert.config.positions.award.fontSize * 0.5}px`,
+                      color: previewCert.config.positions.award.color
+                    } : {
+                      left: '50%',
+                      top: '52%',
+                      fontSize: '14px',
+                      color: '#b45309'
+                    }}
+                  >
+                    {getFullAwardText(previewCert.result.award)}
+                  </div>
+                )}
+
+                {/* Configured Activity Name & Level */}
+                {(previewCert.config?.visibleElements?.activityName ?? true) && (
+                  <div
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap"
+                    style={previewCert.config?.positions?.activityName ? {
+                      left: `${previewCert.config.positions.activityName.x}%`,
+                      top: `${previewCert.config.positions.activityName.y}%`,
+                      fontSize: `${previewCert.config.positions.activityName.fontSize * 0.5}px`,
+                      color: previewCert.config.positions.activityName.color
+                    } : {
+                      left: '50%',
+                      top: '60%',
+                      fontSize: '12px',
+                      color: '#334155'
+                    }}
+                  >
+                    {previewCert.result.activityTitle} {previewCert.result.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}
+                  </div>
+                )}
+
+                {/* Configured Academic Year Text */}
+                {(previewCert.config?.visibleElements?.academicYearText ?? true) && (
+                  <div
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                    style={previewCert.config?.positions?.academicYearText ? {
+                      left: `${previewCert.config.positions.academicYearText.x}%`,
+                      top: `${previewCert.config.positions.academicYearText.y}%`,
+                      fontSize: `${previewCert.config.positions.academicYearText.fontSize * 0.5}px`,
+                      color: previewCert.config.positions.academicYearText.color
+                    } : {
+                      left: '50%',
+                      top: '67%',
+                      fontSize: '10px',
+                      color: '#475569'
+                    }}
+                  >
+                    เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {previewCert.result.academicYear}
+                  </div>
+                )}
+
+                {/* Configured Certificate ID */}
+                {(previewCert.config?.visibleElements?.certId ?? true) && (
+                  <div
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 font-mono whitespace-nowrap"
+                    style={previewCert.config?.positions?.certId ? {
+                      left: `${previewCert.config.positions.certId.x}%`,
+                      top: `${previewCert.config.positions.certId.y}%`,
+                      fontSize: `${previewCert.config.positions.certId.fontSize * 0.5}px`,
+                      color: previewCert.config.positions.certId.color
+                    } : {
+                      left: '75%',
+                      top: '88%',
+                      fontSize: '9px',
+                      color: '#64748b'
+                    }}
+                  >
+                    {previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`}
+                  </div>
+                )}
+
+                {/* Default Footer Signatures if no custom background */}
+                {!previewCert.config?.bgImageUrl && (
+                  <div className="absolute bottom-4 right-8 text-center space-y-0.5 text-[10px] text-slate-600">
                     <div className="w-32 border-b border-slate-400 mx-auto pb-0.5 font-serif text-slate-700 italic">
                       (นายณัฐกิจ คำภูธร)
                     </div>
                     <div className="font-semibold text-slate-800">ประธานกลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</div>
                   </div>
-                </div>
+                )}
 
               </div>
             </div>

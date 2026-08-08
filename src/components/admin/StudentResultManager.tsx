@@ -335,7 +335,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
         {batchItem && (
           <div
             ref={batchPrintRef}
-            className="w-[1050px] h-[742px] bg-white relative rounded-none overflow-hidden flex flex-col items-center justify-between p-12 text-slate-900 font-sarabun select-none"
+            className={`w-[1050px] h-[742px] bg-white relative rounded-none overflow-hidden text-slate-900 select-none ${batchCertConfig?.fontFamily ? `font-${batchCertConfig.fontFamily.toLowerCase()}` : 'font-sarabun'}`}
             style={{
               backgroundImage: batchCertConfig?.bgImageUrl 
                 ? `url(${batchCertConfig.bgImageUrl})` 
@@ -348,50 +348,130 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
               <div className="absolute inset-4 border-2 border-dashed border-sky-300 rounded-2xl pointer-events-none" />
             )}
 
-            {/* Header Logo */}
-            <div className="text-center pt-4 space-y-1.5 relative z-10">
-              <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-purple-600 rounded-2xl mx-auto p-0.5 shadow-sm flex items-center justify-center">
-                <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center text-sky-600 font-extrabold text-lg">
-                  NWSP
+            {!batchCertConfig?.bgImageUrl && (
+              <div className="text-center pt-6 space-y-1.5 relative z-10">
+                <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-purple-600 rounded-2xl mx-auto p-0.5 shadow-sm flex items-center justify-center">
+                  <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center text-sky-600 font-extrabold text-lg">
+                    NWSP
+                  </div>
                 </div>
+                <h1 className="text-xl font-bold text-slate-900 tracking-wide">
+                  โรงเรียนหนองวัวซอพิทยาคม
+                </h1>
+                <p className="text-sm font-medium text-slate-600">
+                  ขอมอบเกียรติบัตรฉบับนี้เพื่อแสดงว่า
+                </p>
               </div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-wide">
-                โรงเรียนหนองวัวซอพิทยาคม
-              </h1>
-              <p className="text-sm font-medium text-slate-600">
-                ขอมอบเกียรติบัตรฉบับนี้เพื่อแสดงว่า
-              </p>
-            </div>
+            )}
 
-            {/* Student Name */}
-            <div className="text-center my-4 relative z-10 space-y-2">
-              <h2 className="text-4xl font-extrabold text-sky-950 tracking-wide">
+            {/* Configured Student Name */}
+            {(batchCertConfig?.visibleElements?.studentName ?? true) && (
+              <div
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap"
+                style={batchCertConfig?.positions?.studentName ? {
+                  left: `${batchCertConfig.positions.studentName.x}%`,
+                  top: `${batchCertConfig.positions.studentName.y}%`,
+                  fontSize: `${batchCertConfig.positions.studentName.fontSize * 0.7}px`,
+                  color: batchCertConfig.positions.studentName.color
+                } : {
+                  left: '50%',
+                  top: '42%',
+                  fontSize: '28px',
+                  color: '#0c4a6e'
+                }}
+              >
                 {batchItem.studentName}
-              </h2>
-              <p className="text-base text-slate-700 max-w-xl mx-auto leading-relaxed">
-                {batchItem.award === 'เข้าร่วมการแข่งขัน'
-                  ? `ได้เข้าร่วม ${batchItem.activityTitle} ${batchItem.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}`
-                  : `ได้รับ ${batchItem.award} ใน ${batchItem.activityTitle} ${batchItem.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}`}
-                <br />
-                <span className="text-xs text-slate-600 block mt-1">
-                  เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {batchItem.academicYear}
-                </span>
-              </p>
-            </div>
-
-            {/* Footer Signatures */}
-            <div className="w-full flex items-end justify-between px-8 pb-4 relative z-10 text-xs text-slate-600">
-              <div className="text-left space-y-1">
-                <div>รหัสเกียรติบัตร: {batchItem.certificateId}</div>
               </div>
+            )}
 
-              <div className="text-center space-y-1">
+            {/* Configured Full Award Text */}
+            {(batchCertConfig?.visibleElements?.award ?? true) && (
+              <div
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap"
+                style={batchCertConfig?.positions?.award ? {
+                  left: `${batchCertConfig.positions.award.x}%`,
+                  top: `${batchCertConfig.positions.award.y}%`,
+                  fontSize: `${batchCertConfig.positions.award.fontSize * 0.7}px`,
+                  color: batchCertConfig.positions.award.color
+                } : {
+                  left: '50%',
+                  top: '52%',
+                  fontSize: '22px',
+                  color: '#b45309'
+                }}
+              >
+                {getFullAwardText(batchItem.award)}
+              </div>
+            )}
+
+            {/* Configured Activity Name & Level */}
+            {(batchCertConfig?.visibleElements?.activityName ?? true) && (
+              <div
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap"
+                style={batchCertConfig?.positions?.activityName ? {
+                  left: `${batchCertConfig.positions.activityName.x}%`,
+                  top: `${batchCertConfig.positions.activityName.y}%`,
+                  fontSize: `${batchCertConfig.positions.activityName.fontSize * 0.7}px`,
+                  color: batchCertConfig.positions.activityName.color
+                } : {
+                  left: '50%',
+                  top: '60%',
+                  fontSize: '18px',
+                  color: '#334155'
+                }}
+              >
+                {batchItem.activityTitle} {batchItem.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}
+              </div>
+            )}
+
+            {/* Configured Academic Year Text */}
+            {(batchCertConfig?.visibleElements?.academicYearText ?? true) && (
+              <div
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
+                style={batchCertConfig?.positions?.academicYearText ? {
+                  left: `${batchCertConfig.positions.academicYearText.x}%`,
+                  top: `${batchCertConfig.positions.academicYearText.y}%`,
+                  fontSize: `${batchCertConfig.positions.academicYearText.fontSize * 0.7}px`,
+                  color: batchCertConfig.positions.academicYearText.color
+                } : {
+                  left: '50%',
+                  top: '67%',
+                  fontSize: '14px',
+                  color: '#475569'
+                }}
+              >
+                เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {batchItem.academicYear}
+              </div>
+            )}
+
+            {/* Configured Certificate ID */}
+            {(batchCertConfig?.visibleElements?.certId ?? true) && (
+              <div
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 font-mono whitespace-nowrap"
+                style={batchCertConfig?.positions?.certId ? {
+                  left: `${batchCertConfig.positions.certId.x}%`,
+                  top: `${batchCertConfig.positions.certId.y}%`,
+                  fontSize: `${batchCertConfig.positions.certId.fontSize * 0.7}px`,
+                  color: batchCertConfig.positions.certId.color
+                } : {
+                  left: '75%',
+                  top: '88%',
+                  fontSize: '13px',
+                  color: '#64748b'
+                }}
+              >
+                {batchItem.certificateId}
+              </div>
+            )}
+
+            {!batchCertConfig?.bgImageUrl && (
+              <div className="absolute bottom-6 right-10 text-center space-y-1 text-xs text-slate-600">
                 <div className="w-44 border-b border-slate-400 mx-auto pb-1 font-serif text-slate-800 italic">
                   (นายณัฐกิจ คำภูธร)
                 </div>
                 <div className="font-semibold text-slate-900">ประธานกลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
