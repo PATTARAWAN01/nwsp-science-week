@@ -102,7 +102,7 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
       }))
     }));
 
-    // Paginate teams cleanly into A4 Page chunks (approx 12-14 student rows per page)
+    // Paginate teams cleanly into A4 Page chunks (approx 20-21 student rows per page)
     const pages: {
       pageIndex: number;
       startTeamNumber: number;
@@ -112,12 +112,13 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
     let currentPageTeams: typeof teamsList = [];
     let currentRowsCount = 0;
     let startTeamNum = 1;
+    const MAX_ROWS_NORMAL_PAGE = 21;
 
     for (let i = 0; i < teamsList.length; i++) {
       const team = teamsList[i];
       const teamRowCount = team.members.length;
 
-      if (currentRowsCount + teamRowCount > 13 && currentPageTeams.length > 0) {
+      if (currentRowsCount + teamRowCount > MAX_ROWS_NORMAL_PAGE && currentPageTeams.length > 0) {
         pages.push({
           pageIndex: pages.length,
           startTeamNumber: startTeamNum,
@@ -133,11 +134,27 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
     }
 
     if (currentPageTeams.length > 0) {
-      pages.push({
-        pageIndex: pages.length,
-        startTeamNumber: startTeamNum,
-        teams: currentPageTeams
-      });
+      // If the last page has more than 15 rows, push the last team to a new final page so signature block has ample space
+      if (currentRowsCount > 15 && currentPageTeams.length > 1) {
+        const lastTeam = currentPageTeams.pop()!;
+        pages.push({
+          pageIndex: pages.length,
+          startTeamNumber: startTeamNum,
+          teams: currentPageTeams
+        });
+        startTeamNum += currentPageTeams.length;
+        pages.push({
+          pageIndex: pages.length,
+          startTeamNumber: startTeamNum,
+          teams: [lastTeam]
+        });
+      } else {
+        pages.push({
+          pageIndex: pages.length,
+          startTeamNumber: startTeamNum,
+          teams: currentPageTeams
+        });
+      }
     }
 
     setPrintData({
@@ -384,7 +401,7 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
             {printData.pages.map((pageObj, pageIdx) => (
               <div
                 key={pageIdx}
-                className="w-[794px] min-h-[1123px] bg-white p-10 text-slate-900 font-sarabun flex flex-col justify-between"
+                className="w-[794px] min-h-[1123px] bg-white p-8 text-slate-900 font-sarabun flex flex-col justify-between"
               >
                 <div className="space-y-5 flex-1">
                   {/* School Header */}
