@@ -338,11 +338,18 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
             className="w-[794px] min-h-[1123px] bg-white p-10 text-slate-900 font-sarabun space-y-6"
           >
             {/* School Header */}
-            <div className="text-center space-y-1 border-b-2 border-slate-800 pb-4">
-              <h1 className="text-2xl font-bold">ใบบันทึกการลงชื่อเข้าแข่งขันและลงผลรางวัล</h1>
-              <h2 className="text-base font-semibold text-slate-700">โรงเรียนหนองวัวซอพิทยาคม • ปีการศึกษา {academicYear}</h2>
-              <div className="text-xs text-slate-600 pt-1">
-                <strong>กิจกรรม:</strong> {printData.activityTitle} ({printData.level}) • <strong>ครูผู้ดูแล:</strong> {printData.teacherNames}
+            <div className="text-center space-y-1.5 border-b-2 border-slate-800 pb-4">
+              <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                ใบบันทึกการลงชื่อเข้าแข่งขันและลงผลรางวัล
+              </h1>
+              <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                กิจกรรม{printData.activityTitle} ({printData.level})
+              </h2>
+              <h3 className="text-sm font-semibold text-slate-700">
+                โรงเรียนหนองวัวซอพิทยาคม • ปีการศึกษา {academicYear}
+              </h3>
+              <div className="text-xs text-slate-600 font-medium">
+                <strong>ครูผู้ดูแลกิจกรรม:</strong> {printData.teacherNames}
               </div>
             </div>
 
