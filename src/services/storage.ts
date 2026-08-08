@@ -289,6 +289,28 @@ export const deleteActivity = async (id: string): Promise<void> => {
   }
 };
 
+// Helper to sanitize registration member grade alignment
+const sanitizeRegistrationGrade = (r: Registration): Registration => {
+  if (!r || !r.members) return r;
+  const isJunior = r.level === 'ม.ต้น';
+  const sanitizedMembers = r.members.map(m => {
+    const isJuniorGrade = ['ม.1', 'ม.2', 'ม.3'].includes(m.grade);
+    let g = m.grade;
+    let t = m.title;
+    if (!isJunior && isJuniorGrade) {
+      g = 'ม.4';
+      if (t === 'เด็กชาย') t = 'นาย';
+      if (t === 'เด็กหญิง') t = 'นางสาว';
+    } else if (isJunior && !isJuniorGrade) {
+      g = 'ม.1';
+      if (t === 'นาย') t = 'เด็กชาย';
+      if (t === 'นางสาว') t = 'เด็กหญิง';
+    }
+    return { ...m, grade: g as any, title: t as any };
+  });
+  return { ...r, members: sanitizedMembers };
+};
+
 // Registrations API
 export const getRegistrations = async (year?: string): Promise<Registration[]> => {
   const targetYear = year || getAcademicYear();
@@ -296,7 +318,7 @@ export const getRegistrations = async (year?: string): Promise<Registration[]> =
 
   // 1. LocalStorage registrations
   const localList = getLocal<Registration[]>(STORAGE_KEYS.REGISTRATIONS, []);
-  localList.filter(r => r.academicYear === targetYear).forEach(r => regMap.set(r.id, r));
+  localList.filter(r => r.academicYear === targetYear).forEach(r => regMap.set(r.id, sanitizeRegistrationGrade(r)));
 
   // 2. Cloud Firestore registrations
   if (isFirebaseConfigured() && db) {
@@ -306,7 +328,7 @@ export const getRegistrations = async (year?: string): Promise<Registration[]> =
       querySnapshot.forEach((docSnap) => {
         const cloudReg = docSnap.data() as Registration;
         if (cloudReg && cloudReg.id) {
-          regMap.set(cloudReg.id, cloudReg);
+          regMap.set(cloudReg.id, sanitizeRegistrationGrade(cloudReg));
         }
       });
     } catch (err) {

@@ -58,22 +58,38 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   const availableActivities = activities.filter(act => act.levels.includes(level) && act.isOpen);
   const currentActivity = activities.find(act => act.id === selectedActivityId) || availableActivities[0];
 
-  // Adjust member list count based on teamSize
+  // Adjust member list count based on teamSize & sanitize grade when level changes
   useEffect(() => {
     if (!currentActivity) return;
 
     const count = currentActivity.type === 'team' ? currentActivity.teamSize : 1;
-    const defaultTitle: StudentTitle = level === 'ม.ต้น' ? 'เด็กชาย' : 'นาย';
-    const defaultGrade: StudentGrade = level === 'ม.ต้น' ? 'ม.1' : 'ม.4';
+    const isJuniorLevel = level === 'ม.ต้น';
+    const defaultTitle: StudentTitle = isJuniorLevel ? 'เด็กชาย' : 'นาย';
+    const defaultGrade: StudentGrade = isJuniorLevel ? 'ม.1' : 'ม.4';
 
     setMembers(prev => {
       const newMembers: ApplicantStudent[] = [];
       for (let i = 0; i < count; i++) {
-        if (prev[i]) {
+        const p = prev[i];
+        if (p) {
+          const currentIsJunior = ['ม.1', 'ม.2', 'ม.3'].includes(p.grade);
+          let sanitizedGrade = p.grade;
+          let sanitizedTitle = p.title;
+
+          if (isJuniorLevel && !currentIsJunior) {
+            sanitizedGrade = 'ม.1';
+            if (sanitizedTitle === 'นาย') sanitizedTitle = 'เด็กชาย';
+            if (sanitizedTitle === 'นางสาว') sanitizedTitle = 'เด็กหญิง';
+          } else if (!isJuniorLevel && currentIsJunior) {
+            sanitizedGrade = 'ม.4';
+            if (sanitizedTitle === 'เด็กชาย') sanitizedTitle = 'นาย';
+            if (sanitizedTitle === 'เด็กหญิง') sanitizedTitle = 'นางสาว';
+          }
+
           newMembers.push({
-            ...prev[i],
-            title: prev[i].title || defaultTitle,
-            grade: prev[i].grade || defaultGrade,
+            ...p,
+            title: sanitizedTitle || defaultTitle,
+            grade: sanitizedGrade || defaultGrade,
           });
         } else {
           newMembers.push({

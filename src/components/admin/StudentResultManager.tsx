@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Registration, CompetitionResult, Activity, AwardType, StudentGrade, StudentTitle, CertNumberConfig } from '../../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Registration, CompetitionResult, Activity, AwardType, StudentGrade, StudentTitle, CertNumberConfig, CertificateConfig } from '../../types';
 import { 
   saveRegistration, 
   deleteRegistration, 
   saveResult, 
   deleteResult,
   getCertNumberConfig,
-  saveCertNumberConfig
+  saveCertNumberConfig,
+  getCertificateConfigs
 } from '../../services/storage';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { 
   Users, 
   Award, 
@@ -20,7 +23,10 @@ import {
   CheckCircle,
   AlertTriangle,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Printer,
+  Download,
+  Loader2
 } from 'lucide-react';
 
 interface StudentResultManagerProps {
@@ -199,8 +205,225 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
   const currentActivity = activities.find(a => a.id === selectedActivityId);
 
+  // Batch PDF Export State
+  const [isExportingBatchPDF, setIsExportingBatchPDF] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, name: '' });
+  const [batchItem, setBatchItem] = useState<{
+    studentName: string;
+    award: string;
+    activityTitle: string;
+    level: string;
+    certificateId: string;
+    academicYear: string;
+  } | null>(null);
+  const [allCertConfigs, setAllCertConfigs] = useState<CertificateConfig[]>([]);
+
+  const batchPrintRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getCertificateConfigs().then(setAllCertConfigs);
+  }, []);
+
+  const batchCertConfig = allCertConfigs.find(
+    c => c.activityId === selectedActivityId && c.level === selectedLevel && c.academicYear === academicYear
+  );
+
+  const handleExportBatchPDF = async () => {
+    const currentAct = activities.find(a => a.id === selectedActivityId);
+    if (!currentAct) return;
+
+    const studentsToExport: {
+      studentName: string;
+      award: string;
+      activityTitle: string;
+      level: string;
+      certificateId: string;
+      academicYear: string;
+    }[] = [];
+
+    // Check if results exist for this activity & level
+    const activityResults = results.filter(
+      r => r.academicYear === academicYear && r.activityId === selectedActivityId && r.level === selectedLevel
+    );
+
+    if (activityResults.length > 0) {
+      activityResults.forEach(res => {
+        res.members.forEach(m => {
+          studentsToExport.push({
+            studentName: `${m.title}${m.fullName}`,
+            award: res.award,
+            activityTitle: res.activityTitle,
+            level: res.level,
+            certificateId: res.certificateId || `NWSP-${academicYear}-${res.id.slice(0, 6).toUpperCase()}`,
+            academicYear: res.academicYear
+          });
+        });
+      });
+    } else if (activityRegistrations.length > 0) {
+      // If no awards logged yet, export participant certs for all registered applicants
+      let seq = certSeqConfig.startingNumber;
+      activityRegistrations.forEach(reg => {
+        reg.members.forEach(m => {
+          studentsToExport.push({
+            studentName: `${m.title}${m.fullName}`,
+            award: 'เข้าร่วมการแข่งขัน',
+            activityTitle: reg.activityTitle,
+            level: reg.level,
+            certificateId: `${certSeqConfig.prefix}${seq++}${certSeqConfig.suffix}`,
+            academicYear: reg.academicYear
+          });
+        });
+      });
+    }
+
+    if (studentsToExport.length === 0) {
+      alert("ไม่มีรายชื่อผู้สมัครหรือผู้ได้รับรางวัลในกิจกรรมและระดับชั้นนี้");
+      return;
+    }
+
+    setIsExportingBatchPDF(true);
+    setBatchProgress({ current: 0, total: studentsToExport.length, name: '' });
+
+    try {
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      for (let i = 0; i < studentsToExport.length; i++) {
+        const item = studentsToExport[i];
+        setBatchItem(item);
+        setBatchProgress({ current: i + 1, total: studentsToExport.length, name: item.studentName });
+
+        // Small delay to let DOM render state
+        await new Promise(r => setTimeout(r, 150));
+
+        if (batchPrintRef.current) {
+          const canvas = await html2canvas(batchPrintRef.current, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+          });
+
+          const imgData = canvas.toDataURL('image/jpeg', 0.95);
+          if (i > 0) {
+            pdf.addPage('a4', 'landscape');
+          }
+          pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+        }
+      }
+
+      const fileName = `เกียรติบัตรทั้งหมด_${currentAct.title}_${selectedLevel}_ปี${academicYear}.pdf`;
+      pdf.save(fileName);
+      alert(`ส่งออกไฟล์ PDF เกียรติบัตรสำเร็จ! รวมทั้งหมด ${studentsToExport.length} รายชื่อในไฟล์เดียวเรียบร้อยแล้ว`);
+    } catch (err) {
+      console.error("Batch PDF Export error:", err);
+      alert("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsExportingBatchPDF(false);
+      setBatchItem(null);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn">
+      
+      {/* Offscreen / Hidden Batch Print Certificate Template */}
+      <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: '1050px', zIndex: -100 }}>
+        {batchItem && (
+          <div
+            ref={batchPrintRef}
+            className="w-[1050px] h-[742px] bg-white relative rounded-none overflow-hidden flex flex-col items-center justify-between p-12 text-slate-900 font-sarabun select-none"
+            style={{
+              backgroundImage: batchCertConfig?.bgImageUrl 
+                ? `url(${batchCertConfig.bgImageUrl})` 
+                : 'radial-gradient(circle at 50% 50%, #ffffff 0%, #f0f9ff 100%)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          >
+            {!batchCertConfig?.bgImageUrl && (
+              <div className="absolute inset-4 border-2 border-dashed border-sky-300 rounded-2xl pointer-events-none" />
+            )}
+
+            {/* Header Logo */}
+            <div className="text-center pt-4 space-y-1.5 relative z-10">
+              <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-purple-600 rounded-2xl mx-auto p-0.5 shadow-sm flex items-center justify-center">
+                <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center text-sky-600 font-extrabold text-lg">
+                  NWSP
+                </div>
+              </div>
+              <h1 className="text-xl font-bold text-slate-900 tracking-wide">
+                โรงเรียนหนองวัวซอพิทยาคม
+              </h1>
+              <p className="text-sm font-medium text-slate-600">
+                ขอมอบเกียรติบัตรฉบับนี้เพื่อแสดงว่า
+              </p>
+            </div>
+
+            {/* Student Name */}
+            <div className="text-center my-4 relative z-10 space-y-2">
+              <h2 className="text-4xl font-extrabold text-sky-950 tracking-wide">
+                {batchItem.studentName}
+              </h2>
+              <p className="text-base text-slate-700 max-w-xl mx-auto leading-relaxed">
+                {batchItem.award === 'เข้าร่วมการแข่งขัน'
+                  ? `ได้เข้าร่วม ${batchItem.activityTitle}`
+                  : `ได้รับ ${batchItem.award} ใน ${batchItem.activityTitle}`}
+                <br />
+                <span className="text-sm text-slate-600">
+                  ระดับชั้น{batchItem.level} เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {batchItem.academicYear}
+                </span>
+              </p>
+            </div>
+
+            {/* Footer Signatures */}
+            <div className="w-full flex items-end justify-between px-8 pb-4 relative z-10 text-xs text-slate-600">
+              <div className="text-left space-y-1">
+                <div>รหัสเกียรติบัตร: {batchItem.certificateId}</div>
+              </div>
+
+              <div className="text-center space-y-1">
+                <div className="w-44 border-b border-slate-400 mx-auto pb-1 font-serif text-slate-800 italic">
+                  (นายณัฐกิจ คำภูธร)
+                </div>
+                <div className="font-semibold text-slate-900">ประธานกลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Batch Export Loading Overlay Modal */}
+      {isExportingBatchPDF && (
+        <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center space-y-5 shadow-2xl border border-white/80">
+            <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto shadow-md">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-extrabold text-slate-900">กำลังสร้างไฟล์ PDF เกียรติบัตรทั้งหมด...</h3>
+              <p className="text-sm font-semibold text-purple-700">
+                กำลังประมวลผล: <span className="underline">{batchProgress.name}</span>
+              </p>
+              <div className="text-xs text-slate-500 font-bold">
+                {batchProgress.current} จากทั้งหมด {batchProgress.total} รายชื่อ ({Math.round((batchProgress.current / batchProgress.total) * 100)}%)
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+              <div
+                className="bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-600 h-full transition-all duration-200"
+                style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-400">กรุณารอสักครู่ ระบบกำลังรวบรวมเกียรติบัตรทุกรายชื่อไว้ในไฟล์เดียว...</p>
+          </div>
+        </div>
+      )}
       
       {/* Sub tabs switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
@@ -367,9 +590,24 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-1">
-              <span>รายชื่อทีม/ผู้สมัครที่ลงทะเบียนกิจกรรม "{currentActivity?.title}" ({selectedLevel}):</span>
-              <span>รวม {activityRegistrations.length} ทีม</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold text-slate-700 px-3 py-3 bg-white/90 rounded-2xl border border-purple-200/80 shadow-2xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-600" />
+                <span>รายชื่อทีม/ผู้สมัครกิจกรรม "{currentActivity?.title}" ({selectedLevel}):</span>
+                <span className="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md font-extrabold">รวม {activityRegistrations.length} ทีม</span>
+              </div>
+
+              {/* Requirement: 1-Click Batch Export All Certificates PDF */}
+              <button
+                type="button"
+                onClick={handleExportBatchPDF}
+                disabled={isExportingBatchPDF || activityRegistrations.length === 0}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:opacity-95 text-white rounded-xl font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                title="คลิกเดียวเพื่อส่งออกเกียรติบัตรทุกรายชื่อในกิจกรรมนี้เป็นไฟล์ PDF รวมทุกหน้า"
+              >
+                <Printer className="w-4 h-4" />
+                ส่งออกเกียรติบัตรทุกรายชื่อ (PDF รวมทุกหน้า) 📄
+              </button>
             </div>
 
             {activityRegistrations.length === 0 ? (
