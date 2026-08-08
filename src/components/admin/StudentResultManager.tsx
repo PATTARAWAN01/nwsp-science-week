@@ -233,9 +233,24 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     return `ได้รับ${awardStr}`;
   };
 
-  const batchCertConfig = allCertConfigs.find(
-    c => c.activityId === selectedActivityId && c.academicYear === academicYear
-  );
+  const findCertConfig = (configs: CertificateConfig[], actId: string, actTitle?: string, year?: string) => {
+    if (!configs || configs.length === 0) return null;
+    let match = configs.find(c => c && c.activityId === actId && (!year || c.academicYear === year));
+    if (match) return match;
+
+    match = configs.find(c => c && c.activityId === actId);
+    if (match) return match;
+
+    const act = safeActivities.find(a => a && (a.id === actId || a.title === actTitle));
+    if (act) {
+      match = configs.find(c => c && c.activityId === act.id);
+      if (match) return match;
+    }
+
+    return configs.find(c => c && c.academicYear === (year || academicYear)) || configs[0] || null;
+  };
+
+  const batchCertConfig = findCertConfig(allCertConfigs, selectedActivityId, undefined, academicYear);
 
   // Direct Canvas 2D Generator for 100% Taint-Free, Lightning Fast PDF Certificate Rendering
   const generateCertificateCanvas2D = async (
