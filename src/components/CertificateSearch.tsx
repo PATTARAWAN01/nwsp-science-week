@@ -340,8 +340,8 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-700 max-w-lg mx-auto leading-relaxed">
                     {previewCert.result.award === 'เข้าร่วมการแข่งขัน'
-                      ? `ได้เข้าร่วม ${previewCert.result.activityTitle} ระดับชั้น${previewCert.result.level}`
-                      : `ได้รับ ${previewCert.result.award} ใน ${previewCert.result.activityTitle} ระดับชั้น${previewCert.result.level}`}
+                      ? `ได้เข้าร่วม ${previewCert.result.activityTitle} ${previewCert.result.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}`
+                      : `ได้รับ ${previewCert.result.award} ใน ${previewCert.result.activityTitle} ${previewCert.result.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}`}
                     <br />
                     <span className="text-xs text-slate-600 block mt-1">
                       เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {previewCert.result.academicYear}

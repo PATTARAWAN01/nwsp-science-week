@@ -450,7 +450,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                     color: positions.activityName.color
                   }}
                 >
-                  {currentActivity?.title || 'การแข่งขันตอบปัญหาวิทยาศาสตร์'} ระดับชั้น{selectedLevel}
+                  {currentActivity?.title || 'การแข่งขันตอบปัญหาวิทยาศาสตร์'} {selectedLevel === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}
                 </div>
               )}
 

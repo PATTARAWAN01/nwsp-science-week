@@ -370,8 +370,8 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
               </h2>
               <p className="text-base text-slate-700 max-w-xl mx-auto leading-relaxed">
                 {batchItem.award === 'เข้าร่วมการแข่งขัน'
-                  ? `ได้เข้าร่วม ${batchItem.activityTitle} ระดับชั้น${batchItem.level}`
-                  : `ได้รับ ${batchItem.award} ใน ${batchItem.activityTitle} ระดับชั้น${batchItem.level}`}
+                  ? `ได้เข้าร่วม ${batchItem.activityTitle} ${batchItem.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}`
+                  : `ได้รับ ${batchItem.award} ใน ${batchItem.activityTitle} ${batchItem.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}`}
                 <br />
                 <span className="text-xs text-slate-600 block mt-1">
                   เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {batchItem.academicYear}
