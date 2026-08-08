@@ -474,6 +474,16 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
   } else {
     list.push(config);
   }
+
+  // Also update or insert default fallback config in local storage
+  const defaultConfig = { ...config, activityId: 'default', id: `default_${config.academicYear}` };
+  const defaultIdx = list.findIndex(c => c.activityId === 'default' && c.academicYear === config.academicYear);
+  if (defaultIdx >= 0) {
+    list[defaultIdx] = defaultConfig;
+  } else {
+    list.push(defaultConfig);
+  }
+
   setLocal(STORAGE_KEYS.CERT_CONFIGS, list);
 
   if (isFirebaseConfigured() && db) {
@@ -481,7 +491,11 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
       const cleanData = cleanForFirestore(config);
       const docId = `${config.activityId}_${config.academicYear}`;
       await setDoc(doc(db, 'certificate_configs', docId), cleanData);
-      console.log("Certificate config successfully saved to Cloud Firestore online:", docId);
+
+      // Save global default fallback to Firestore online as well
+      const cleanDefault = cleanForFirestore(defaultConfig);
+      await setDoc(doc(db, 'certificate_configs', `default_${config.academicYear}`), cleanDefault);
+      console.log("Certificate config and default fallback successfully saved to Cloud Firestore online:", docId);
     } catch (err) {
       console.error("Firestore save certificate config failed:", err);
     }

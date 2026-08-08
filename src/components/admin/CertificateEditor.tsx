@@ -80,7 +80,10 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
         c => c && c.activityId === selectedActivityId && (!academicYear || c.academicYear === academicYear)
       ) || allConfigs.find(
         c => c && c.activityId === selectedActivityId
-      );
+      ) || allConfigs.find(
+        c => c && (c.activityId === 'default' || c.id?.startsWith('default_')) && (!academicYear || c.academicYear === academicYear)
+      ) || allConfigs[0];
+
       if (match) {
         if (match.bgImageUrl !== undefined) setBgImageUrl(match.bgImageUrl);
         if (match.fontFamily) setCertificateFont(match.fontFamily);
