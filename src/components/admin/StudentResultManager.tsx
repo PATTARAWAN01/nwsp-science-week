@@ -225,7 +225,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
   }, []);
 
   const batchCertConfig = allCertConfigs.find(
-    c => c.activityId === selectedActivityId && c.level === selectedLevel && c.academicYear === academicYear
+    c => c.activityId === selectedActivityId && c.academicYear === academicYear
   );
 
   // Direct Canvas 2D Generator for 100% Taint-Free, Lightning Fast PDF Certificate Rendering
@@ -253,7 +253,9 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     if (config?.bgImageUrl) {
       try {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
+        if (config.bgImageUrl.startsWith('http://') || config.bgImageUrl.startsWith('https://')) {
+          img.crossOrigin = 'anonymous';
+        }
         img.src = config.bgImageUrl;
         await new Promise<void>((resolve) => {
           img.onload = () => {

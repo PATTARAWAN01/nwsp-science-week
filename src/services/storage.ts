@@ -466,7 +466,8 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
 
 export const saveCertificateConfig = async (config: CertificateConfig): Promise<void> => {
   const list = getLocal<CertificateConfig[]>(STORAGE_KEYS.CERT_CONFIGS, []);
-  const idx = list.findIndex(c => c.activityId === config.activityId && c.level === config.level && c.academicYear === config.academicYear);
+  // Match by activityId and academicYear (shared between levels ม.ต้น & ม.ปลาย)
+  const idx = list.findIndex(c => c.activityId === config.activityId && c.academicYear === config.academicYear);
   if (idx >= 0) {
     list[idx] = config;
   } else {
@@ -477,7 +478,7 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
   if (isFirebaseConfigured() && db) {
     try {
       const cleanData = cleanForFirestore(config);
-      const docId = `${config.activityId}_${config.level}_${config.academicYear}`;
+      const docId = `${config.activityId}_${config.academicYear}`;
       await setDoc(doc(db, 'certificate_configs', docId), cleanData);
     } catch (err) {
       console.error("Firestore save certificate config failed:", err);

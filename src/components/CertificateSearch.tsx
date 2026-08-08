@@ -95,7 +95,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   // Open Preview Modal
   const handleOpenPreview = (res: CompetitionResult, studentName: string) => {
     const config = certificateConfigs.find(
-      c => c.activityId === res.activityId && c.level === res.level && c.academicYear === res.academicYear
+      c => c.activityId === res.activityId && c.academicYear === res.academicYear
     );
     setPreviewCert({ result: res, studentName, config });
   };
@@ -136,7 +136,9 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
     if (config?.bgImageUrl) {
       try {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
+        if (config.bgImageUrl.startsWith('http://') || config.bgImageUrl.startsWith('https://')) {
+          img.crossOrigin = 'anonymous';
+        }
         img.src = config.bgImageUrl;
         await new Promise<void>((resolve) => {
           img.onload = () => {

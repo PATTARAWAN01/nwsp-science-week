@@ -73,18 +73,21 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
     const loadConfig = async () => {
       const allConfigs = await getCertificateConfigs();
       const match = allConfigs.find(
-        c => c.activityId === selectedActivityId && c.level === selectedLevel && c.academicYear === academicYear
+        c => c.activityId === selectedActivityId && c.academicYear === academicYear
       );
       if (match) {
         if (match.bgImageUrl) setBgImageUrl(match.bgImageUrl);
         if (match.fontFamily) setCertificateFont(match.fontFamily);
         if (match.positions) setPositions(match.positions);
+      } else {
+        // Reset background image if no config exists for this activity
+        setBgImageUrl('');
       }
     };
     if (selectedActivityId) {
       loadConfig();
     }
-  }, [selectedActivityId, selectedLevel, academicYear]);
+  }, [selectedActivityId, academicYear]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,7 +104,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
     if (!selectedActivityId) return;
 
     const config: CertificateConfig = {
-      id: `cert-config-${academicYear}-${selectedActivityId}-${selectedLevel}`,
+      id: `cert-config-${academicYear}-${selectedActivityId}`,
       academicYear,
       activityId: selectedActivityId,
       level: selectedLevel,
@@ -111,7 +114,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
     };
 
     await saveCertificateConfig(config);
-    alert(`บันทึกรูปแบบและตำแหน่งข้อความเกียรติบัตรเรียบร้อยแล้ว!`);
+    alert(`บันทึกรูปแบบการตั้งค่าเกียรติบัตรสำหรับกิจกรรมนี้เรียบร้อยแล้ว! (ใช้รูปแบบและพื้นหลังเดียวกันทั้ง ม.ต้น และ ม.ปลาย)`);
   };
 
   const handlePositionChange = (key: string, field: keyof TextPosition, val: any) => {
