@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { CompetitionResult, CertificateConfig, Activity } from '../types';
+import { ensureFontLoaded } from '../services/storage';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { 
@@ -185,33 +186,8 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       return `${w} ${size}px ${fontSpecifier}, Sarabun, sans-serif`;
     };
 
-    // Ensure selected custom font stylesheet & font binary are 100% loaded before rendering to Canvas 2D
-    if (fontFamily && fontFamily !== 'Sarabun') {
-      const fontId = `gfont-${fontFamily.replace(/\s+/g, '-').toLowerCase()}`;
-      if (!document.getElementById(fontId)) {
-        await new Promise<void>((resolve) => {
-          const link = document.createElement('link');
-          link.id = fontId;
-          link.rel = 'stylesheet';
-          const fontQuery = fontFamily.replace(/\s+/g, '+');
-          link.href = `https://fonts.googleapis.com/css2?family=${fontQuery}:wght@400;600;700&display=swap`;
-          link.onload = () => resolve();
-          link.onerror = () => resolve();
-          document.head.appendChild(link);
-          setTimeout(resolve, 1500);
-        });
-      }
-
-      try {
-        await Promise.all([
-          document.fonts.load(`700 50px ${cleanFontName}`),
-          document.fonts.load(`400 50px ${cleanFontName}`),
-          document.fonts.ready
-        ]);
-      } catch (e) {
-        console.warn("Font pre-load warning:", e);
-      }
-    }
+    // Ensure WebFont binary is 100% loaded in browser memory before drawing page 1
+    await ensureFontLoaded(fontFamily);
 
     const drawTextAutoFit = (
       text: string,

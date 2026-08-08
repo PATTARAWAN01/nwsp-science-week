@@ -7,7 +7,8 @@ import {
   deleteResult,
   getCertNumberConfig,
   saveCertNumberConfig,
-  getCertificateConfigs
+  getCertificateConfigs,
+  ensureFontLoaded
 } from '../../services/storage';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -343,33 +344,8 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
       return `${w} ${size}px ${fontSpecifier}, Sarabun, sans-serif`;
     };
 
-    // Ensure selected custom font stylesheet & font binary are 100% loaded before rendering to Canvas 2D
-    if (fontFamily && fontFamily !== 'Sarabun') {
-      const fontId = `gfont-${fontFamily.replace(/\s+/g, '-').toLowerCase()}`;
-      if (!document.getElementById(fontId)) {
-        await new Promise<void>((resolve) => {
-          const link = document.createElement('link');
-          link.id = fontId;
-          link.rel = 'stylesheet';
-          const fontQuery = fontFamily.replace(/\s+/g, '+');
-          link.href = `https://fonts.googleapis.com/css2?family=${fontQuery}:wght@400;600;700&display=swap`;
-          link.onload = () => resolve();
-          link.onerror = () => resolve();
-          document.head.appendChild(link);
-          setTimeout(resolve, 1500);
-        });
-      }
-
-      try {
-        await Promise.all([
-          document.fonts.load(`700 50px ${fontSpecifier}`),
-          document.fonts.load(`400 50px ${fontSpecifier}`),
-          document.fonts.ready
-        ]);
-      } catch (e) {
-        console.warn("Font pre-load warning:", e);
-      }
-    }
+    // Ensure WebFont binary is 100% loaded in browser memory before drawing page 1
+    await ensureFontLoaded(fontFamily);
 
     const drawTextAutoFit = (
       text: string,
@@ -499,6 +475,9 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
       const freshConfigs = await getCertificateConfigs();
       setAllCertConfigs(freshConfigs);
       const activeCertConfig = findCertConfig(freshConfigs, selectedActivityId, currentActivity?.title, academicYear) || batchCertConfig;
+
+      // Force synchronous WebFont pre-loading so Page 1 NEVER falls back to Sarabun
+      await ensureFontLoaded(activeCertConfig?.fontFamily);
 
       const pdf = new jsPDF({
         orientation: 'landscape',

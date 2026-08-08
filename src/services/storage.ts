@@ -505,6 +505,31 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
   }
 };
 
+// Global WebFont Loader to eliminate Page 1 Canvas 2D Sarabun Fallback race conditions
+export const ensureFontLoaded = async (fontFamily?: string): Promise<void> => {
+  if (!fontFamily || fontFamily === 'Sarabun') return;
+  const fontId = `gfont-${fontFamily.replace(/\s+/g, '-').toLowerCase()}`;
+  if (!document.getElementById(fontId)) {
+    const link = document.createElement('link');
+    link.id = fontId;
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:wght@400;700;800&display=swap`;
+    document.head.appendChild(link);
+  }
+  try {
+    const fontSpecifier = fontFamily.includes(' ') ? `'${fontFamily}'` : fontFamily;
+    await Promise.all([
+      document.fonts.load(`700 40px ${fontSpecifier}`),
+      document.fonts.load(`400 24px ${fontSpecifier}`),
+      document.fonts.ready
+    ]);
+  } catch (e) {
+    console.warn("ensureFontLoaded warning:", e);
+  }
+  // Guarantee 200ms delay for Canvas 2D engine to bind font glyphs into memory
+  await new Promise(res => setTimeout(res, 200));
+};
+
 // Admin Session Auth
 export const checkAdminAuth = (): boolean => {
   return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';

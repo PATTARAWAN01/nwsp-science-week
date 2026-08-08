@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CertificateConfig, Activity, LevelCategory, TextPosition } from '../../types';
-import { getCertificateConfigs, saveCertificateConfig } from '../../services/storage';
+import { getCertificateConfigs, saveCertificateConfig, ensureFontLoaded } from '../../services/storage';
 import { 
   Upload, 
   Type, 
@@ -100,15 +100,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
   }, [selectedActivityId, academicYear]);
   useEffect(() => {
     if (certificateFont) {
-      const fontId = `gfont-${certificateFont.replace(/\s+/g, '-').toLowerCase()}`;
-      if (!document.getElementById(fontId)) {
-        const link = document.createElement('link');
-        link.id = fontId;
-        link.rel = 'stylesheet';
-        const fontQuery = certificateFont.replace(/\s+/g, '+');
-        link.href = `https://fonts.googleapis.com/css2?family=${fontQuery}:wght@400;600;700&display=swap`;
-        document.head.appendChild(link);
-      }
+      ensureFontLoaded(certificateFont);
     }
   }, [certificateFont]);
 
