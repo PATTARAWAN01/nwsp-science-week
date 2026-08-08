@@ -88,6 +88,19 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
       loadConfig();
     }
   }, [selectedActivityId, academicYear]);
+  useEffect(() => {
+    if (certificateFont) {
+      const fontId = `gfont-${certificateFont.replace(/\s+/g, '-').toLowerCase()}`;
+      if (!document.getElementById(fontId)) {
+        const link = document.createElement('link');
+        link.id = fontId;
+        link.rel = 'stylesheet';
+        const fontQuery = certificateFont.replace(/\s+/g, '+');
+        link.href = `https://fonts.googleapis.com/css2?family=${fontQuery}:wght@400;600;700&display=swap`;
+        document.head.appendChild(link);
+      }
+    }
+  }, [certificateFont]);
 
   const getFullAwardText = (awardStr: string) => {
     if (awardStr === 'รางวัลชนะเลิศ') return 'ได้รับรางวัลชนะเลิศ';

@@ -177,16 +177,26 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
     const fontFamily = config?.fontFamily || 'Sarabun';
 
     // Ensure selected custom font is 100% loaded into browser memory before rendering to Canvas 2D
-    try {
-      if (fontFamily && fontFamily !== 'Sarabun') {
+    if (fontFamily && fontFamily !== 'Sarabun') {
+      const fontId = `gfont-${fontFamily.replace(/\s+/g, '-').toLowerCase()}`;
+      if (!document.getElementById(fontId)) {
+        const link = document.createElement('link');
+        link.id = fontId;
+        link.rel = 'stylesheet';
+        const fontQuery = fontFamily.replace(/\s+/g, '+');
+        link.href = `https://fonts.googleapis.com/css2?family=${fontQuery}:wght@400;600;700&display=swap`;
+        document.head.appendChild(link);
+      }
+
+      try {
         await Promise.all([
           document.fonts.load(`bold 50px "${fontFamily}"`),
           document.fonts.load(`normal 50px "${fontFamily}"`),
           document.fonts.ready
         ]);
+      } catch (e) {
+        console.warn("Font pre-load warning:", e);
       }
-    } catch (e) {
-      console.warn("Font pre-load warning:", e);
     }
 
     // 1. Student Name
