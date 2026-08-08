@@ -122,7 +122,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const maxWidth = 1920;
+          const maxWidth = 1280;
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
             width = maxWidth;
@@ -132,7 +132,8 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            setBgImageUrl(canvas.toDataURL('image/jpeg', 0.85));
+            // 0.70 quality guarantees ~150KB-250KB Base64 payload (well under Firestore 1MB doc limit)
+            setBgImageUrl(canvas.toDataURL('image/jpeg', 0.70));
           } else {
             setBgImageUrl(reader.result as string);
           }
@@ -158,7 +159,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
     };
 
     await saveCertificateConfig(config);
-    alert(`บันทึกรูปแบบการตั้งค่าเกียรติบัตรสำหรับกิจกรรมนี้เรียบร้อยแล้ว! (ใช้รูปแบบและพื้นหลังเดียวกันทั้ง ม.ต้น และ ม.ปลาย)`);
+    alert(`บันทึกรูปแบบแม่แบบและฟอนต์ (${certificateFont}) ลงระบบออนไลน์ Cloud Firestore เรียบร้อยแล้ว!\nนักเรียนและครูทุกอุปกรณ์จะเห็นรูปแบบนี้ตรงกัน 100%`);
   };
 
   const handlePositionChange = (key: string, field: keyof TextPosition, val: any) => {

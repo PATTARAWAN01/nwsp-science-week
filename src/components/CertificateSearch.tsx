@@ -176,10 +176,11 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
 
     const fontFamily = config?.fontFamily || 'Sarabun';
     const cleanFontName = fontFamily.replace(/["']/g, '').trim();
+    const formattedFontName = cleanFontName.includes(' ') ? `'${cleanFontName}'` : cleanFontName;
 
     const getCanvasFont = (weight: string, size: number) => {
       const w = weight === 'bold' ? '700' : (weight || '400');
-      return `${w} ${size}px ${cleanFontName}, Sarabun, sans-serif`;
+      return `${w} ${size}px ${formattedFontName}, Sarabun, sans-serif`;
     };
 
     // Ensure selected custom font stylesheet & font binary are 100% loaded before rendering to Canvas 2D
@@ -201,8 +202,8 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
 
       try {
         await Promise.all([
-          document.fonts.load(`700 50px ${cleanFontName}`),
-          document.fonts.load(`400 50px ${cleanFontName}`),
+          document.fonts.load(`700 50px ${formattedFontName}`),
+          document.fonts.load(`400 50px ${formattedFontName}`),
           document.fonts.ready
         ]);
       } catch (e) {

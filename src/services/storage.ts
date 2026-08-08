@@ -443,19 +443,16 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
     configMap.set(key, c);
   });
 
-  // 2. Cloud Firestore
+  // 2. Cloud Firestore (Authoritative Online Database Sync across all devices)
   if (isFirebaseConfigured() && db) {
     try {
-      const querySnapshot = await fetchWithTimeout(getDocs(collection(db, 'certificate_configs')), 2500);
+      const querySnapshot = await fetchWithTimeout(getDocs(collection(db, 'certificate_configs')), 4000);
       querySnapshot.forEach((docSnap) => {
         const cloudConfig = docSnap.data() as CertificateConfig;
         if (cloudConfig && cloudConfig.activityId) {
           const key = `${cloudConfig.activityId}_${cloudConfig.academicYear}`;
-          const existing = configMap.get(key);
-          // Prefer cloud config if local has no fontFamily or if cloud is newer
-          if (!existing || (cloudConfig.fontFamily && cloudConfig.fontFamily !== 'Sarabun') || docSnap.id === `${cloudConfig.activityId}_${cloudConfig.academicYear}`) {
-            configMap.set(key, cloudConfig);
-          }
+          // Always prefer online Cloud Firestore configs across devices
+          configMap.set(key, cloudConfig);
         }
       });
     } catch (err) {
@@ -484,6 +481,7 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
       const cleanData = cleanForFirestore(config);
       const docId = `${config.activityId}_${config.academicYear}`;
       await setDoc(doc(db, 'certificate_configs', docId), cleanData);
+      console.log("Certificate config successfully saved to Cloud Firestore online:", docId);
     } catch (err) {
       console.error("Firestore save certificate config failed:", err);
     }
