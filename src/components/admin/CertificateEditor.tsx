@@ -324,7 +324,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
             </div>
           </div>
 
-          {/* Font Selector */}
+          {/* Font Selector & Auto-Center Helper */}
           <div className="glass-card p-5 rounded-2xl border border-white/80 space-y-3">
             <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
               <Type className="w-4 h-4 text-purple-600" />
@@ -339,6 +339,22 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                 <option key={f.value} value={f.value}>{f.label}</option>
               ))}
             </select>
+
+            <button
+              onClick={() => {
+                setPositions(prev => ({
+                  ...prev,
+                  studentName: { ...prev.studentName, x: 50 },
+                  award: { ...prev.award, x: 50 },
+                  activityName: { ...prev.activityName, x: 50 }
+                }));
+                alert("จัดตำแหน่งข้อความชื่อนักเรียน รางวัล และชื่อกิจกรรมให้อยู่กึ่งกลางกระดาษ (X=50%) เรียบร้อยแล้ว!\nกรุณากด 'บันทึกการตั้งค่าเกียรติบัตร' เพื่ออัปเดตลงระบบออนไลน์");
+              }}
+              className="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              🎯 ปรับตำแหน่งข้อความให้อยู่กึ่งกลางกระดาษทั้งหมด (X=50%)
+            </button>
           </div>
 
           {/* Upload Background Template */}

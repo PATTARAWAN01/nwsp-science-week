@@ -8,7 +8,8 @@ import {
   getCertNumberConfig,
   saveCertNumberConfig,
   getCertificateConfigs,
-  ensureFontLoaded
+  ensureFontLoaded,
+  getStudentUniqueCertId
 } from '../../services/storage';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -434,16 +435,20 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
     if (activityResults.length > 0) {
       activityResults.forEach(res => {
-        res.members.forEach(m => {
-          studentsToExport.push({
-            studentName: `${m.title}${m.fullName}`,
-            award: res.award,
-            activityTitle: res.activityTitle,
-            level: res.level,
-            certificateId: res.certificateId || `NWSP-${academicYear}-${res.id.slice(0, 6).toUpperCase()}`,
-            academicYear: res.academicYear
+        if (res && Array.isArray(res.members)) {
+          res.members.forEach((m, memberIdx) => {
+            if (!m) return;
+            const studentCertId = getStudentUniqueCertId(res.certificateId, memberIdx);
+            studentsToExport.push({
+              studentName: `${m.title || ''}${m.fullName || ''}`,
+              award: res.award,
+              activityTitle: res.activityTitle,
+              level: res.level,
+              certificateId: studentCertId || `NWSP-${academicYear}-${res.id.slice(0, 6).toUpperCase()}`,
+              academicYear: res.academicYear
+            });
           });
-        });
+        }
       });
     } else if (activityRegistrations.length > 0) {
       // If no awards logged yet, export participant certs for all registered applicants

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { CompetitionResult, CertificateConfig, Activity } from '../types';
-import { ensureFontLoaded } from '../services/storage';
+import { ensureFontLoaded, getStudentUniqueCertId } from '../services/storage';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { 
@@ -37,6 +37,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   const [previewCert, setPreviewCert] = useState<{
     result: CompetitionResult;
     studentName: string;
+    studentCertId: string;
     config?: CertificateConfig;
   } | null>(null);
 
@@ -56,24 +57,28 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
     studentGrade: string;
     studentRoom: number;
     studentId: string;
+    studentCertId: string;
   }[] = [];
 
   const searchClean = searchTerm.trim().toLowerCase();
 
   if (searchClean.length >= 2) {
     results.forEach(res => {
-      if (res.academicYear === selectedSearchYear) {
-        res.members.forEach(member => {
-          const full = `${member.title}${member.fullName}`.toLowerCase();
-          const nameOnly = member.fullName.toLowerCase();
-          if (full.includes(searchClean) || nameOnly.includes(searchClean) || member.studentId.includes(searchClean)) {
+      if (res && res.academicYear === selectedSearchYear && Array.isArray(res.members)) {
+        res.members.forEach((member, memberIdx) => {
+          if (!member) return;
+          const full = `${member.title || ''}${member.fullName || ''}`.toLowerCase();
+          const nameOnly = (member.fullName || '').toLowerCase();
+          if (full.includes(searchClean) || nameOnly.includes(searchClean) || (member.studentId && member.studentId.includes(searchClean))) {
+            const studentCertId = getStudentUniqueCertId(res.certificateId, memberIdx);
             matchingCertificates.push({
               result: res,
-              studentName: `${member.title}${member.fullName}`,
-              studentTitle: member.title,
-              studentGrade: member.grade,
-              studentRoom: member.room,
-              studentId: member.studentId
+              studentName: `${member.title || ''}${member.fullName || ''}`,
+              studentTitle: member.title || '',
+              studentGrade: member.grade || '',
+              studentRoom: member.room || 1,
+              studentId: member.studentId || '',
+              studentCertId
             });
           }
         });
@@ -94,13 +99,13 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   };
 
   // Open Preview Modal
-  const handleOpenPreview = (res: CompetitionResult, studentName: string) => {
+  const handleOpenPreview = (res: CompetitionResult, studentName: string, studentCertId: string) => {
     const config = certificateConfigs.find(
-      c => c.activityId === res.activityId && (!res.academicYear || c.academicYear === res.academicYear)
+      c => c && c.activityId === res.activityId && (!res.academicYear || c.academicYear === res.academicYear)
     ) || certificateConfigs.find(
-      c => c.activityId === res.activityId
+      c => c && c.activityId === res.activityId
     ) || certificateConfigs[0];
-    setPreviewCert({ result: res, studentName, config });
+    setPreviewCert({ result: res, studentName, studentCertId, config });
   };
 
   // Helper for Award Text
@@ -420,7 +425,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                       {cert.result.activityTitle} ({cert.result.level})
                     </span>
                     <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                      {cert.result.certificateId || 'เลขที่เกียรติบัตรระบบ'}
+                      {cert.studentCertId || cert.result.certificateId || 'เลขที่เกียรติบัตรระบบ'}
                     </span>
                   </div>
 
@@ -441,7 +446,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
 
                 <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
                   <button
-                    onClick={() => handleOpenPreview(cert.result, cert.studentName)}
+                    onClick={() => handleOpenPreview(cert.result, cert.studentName, cert.studentCertId)}
                     className="flex-1 py-2 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                   >
                     <Eye className="w-3.5 h-3.5" /> พรีวิว & ดาวน์โหลด

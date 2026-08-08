@@ -505,6 +505,28 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
   }
 };
 
+// Helper to calculate 1 Unique Certificate Number per Student (e.g. 1001/2569 -> 1002/2569 -> 1003/2569)
+export const getStudentUniqueCertId = (baseCertId: string | undefined, memberIndex: number): string => {
+  if (!baseCertId) return '';
+  const match = baseCertId.match(/^(.*?)(\d+)(.*?)$/);
+  if (!match) {
+    if (memberIndex === 0) return baseCertId;
+    return `${baseCertId}-${memberIndex + 1}`;
+  }
+  const prefix = match[1];
+  const numStr = match[2];
+  const suffix = match[3];
+
+  const baseNum = parseInt(numStr, 10);
+  const studentNum = baseNum + memberIndex;
+
+  const paddedNum = numStr.length > 1 && numStr.startsWith('0') 
+    ? String(studentNum).padStart(numStr.length, '0') 
+    : String(studentNum);
+
+  return `${prefix}${paddedNum}${suffix}`;
+};
+
 // Global WebFont Loader to eliminate Page 1 Canvas 2D Sarabun Fallback race conditions
 export const ensureFontLoaded = async (fontFamily?: string): Promise<void> => {
   if (!fontFamily || fontFamily === 'Sarabun') return;
