@@ -228,6 +228,139 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     c => c.activityId === selectedActivityId && c.level === selectedLevel && c.academicYear === academicYear
   );
 
+  // Direct Canvas 2D Generator for 100% Taint-Free, Lightning Fast PDF Certificate Rendering
+  const generateCertificateCanvas2D = async (
+    item: {
+      studentName: string;
+      award: string;
+      activityTitle: string;
+      level: string;
+      certificateId: string;
+      academicYear: string;
+    },
+    config: CertificateConfig | null
+  ): Promise<HTMLCanvasElement> => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2000;
+    canvas.height = 1414;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let bgLoaded = false;
+    if (config?.bgImageUrl) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = config.bgImageUrl;
+        await new Promise<void>((resolve) => {
+          img.onload = () => {
+            try {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              bgLoaded = true;
+            } catch (e) {
+              console.warn("drawImage failed:", e);
+            }
+            resolve();
+          };
+          img.onerror = () => resolve();
+        });
+      } catch (e) {
+        console.warn("Bg image load exception:", e);
+      }
+    }
+
+    if (!bgLoaded) {
+      const grad = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width / 2
+      );
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(1, '#f0f9ff');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 6;
+      ctx.setLineDash([16, 12]);
+      ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+      ctx.setLineDash([]);
+    }
+
+    const fontFamily = config?.fontFamily || 'Sarabun';
+
+    // 1. Student Name
+    if (config?.visibleElements?.studentName ?? true) {
+      const pos = config?.positions?.studentName || { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' };
+      const scaledSize = Math.round(pos.fontSize * 1.7);
+      ctx.font = `${pos.fontWeight || 'bold'} ${scaledSize}px "${fontFamily}", Sarabun, sans-serif`;
+      ctx.fillStyle = pos.color || '#0c4a6e';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.studentName, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+    }
+
+    // 2. Award Text
+    if (config?.visibleElements?.award ?? true) {
+      const pos = config?.positions?.award || { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' };
+      const scaledSize = Math.round(pos.fontSize * 1.7);
+      ctx.font = `${pos.fontWeight || 'bold'} ${scaledSize}px "${fontFamily}", Sarabun, sans-serif`;
+      ctx.fillStyle = pos.color || '#b45309';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(getFullAwardText(item.award), (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+    }
+
+    // 3. Activity Name & Level
+    if (config?.visibleElements?.activityName ?? true) {
+      const pos = config?.positions?.activityName || { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' };
+      const scaledSize = Math.round(pos.fontSize * 1.7);
+      const levelStr = item.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย';
+      ctx.font = `${pos.fontWeight || 'bold'} ${scaledSize}px "${fontFamily}", Sarabun, sans-serif`;
+      ctx.fillStyle = pos.color || '#334155';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${item.activityTitle} ${levelStr}`, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+    }
+
+    // 4. Academic Year Text
+    if (config?.visibleElements?.academicYearText ?? true) {
+      const pos = config?.positions?.academicYearText || { x: 50, y: 67, fontSize: 16, color: '#475569', fontWeight: 'normal' };
+      const scaledSize = Math.round(pos.fontSize * 1.7);
+      ctx.font = `${pos.fontWeight || 'normal'} ${scaledSize}px "${fontFamily}", Sarabun, sans-serif`;
+      ctx.fillStyle = pos.color || '#475569';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา ${item.academicYear}`, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+    }
+
+    // 5. Certificate ID
+    if (config?.visibleElements?.certId ?? true) {
+      const pos = config?.positions?.certId || { x: 75, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' };
+      const scaledSize = Math.round(pos.fontSize * 1.6);
+      ctx.font = `normal ${scaledSize}px monospace, "${fontFamily}", sans-serif`;
+      ctx.fillStyle = pos.color || '#64748b';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.certificateId, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+    }
+
+    if (!bgLoaded) {
+      ctx.font = 'italic 22px serif';
+      ctx.fillStyle = '#334155';
+      ctx.textAlign = 'center';
+      ctx.fillText('(นายณัฐกิจ คำภูธร)', canvas.width * 0.82, canvas.height * 0.84);
+
+      ctx.font = 'bold 18px Sarabun, sans-serif';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText('ประธานกลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี', canvas.width * 0.82, canvas.height * 0.88);
+    }
+
+    return canvas;
+  };
+
   const handleExportBatchPDF = async () => {
     const currentAct = activities.find(a => a.id === selectedActivityId);
     if (!currentAct) return;
@@ -296,24 +429,16 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
         setBatchItem(item);
         setBatchProgress({ current: i + 1, total: studentsToExport.length, name: item.studentName });
 
-        // Delay to ensure React DOM and images render fully in viewport
-        await new Promise(r => setTimeout(r, 250));
+        const canvas = await generateCertificateCanvas2D(item, batchCertConfig);
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
-        if (batchPrintRef.current) {
-          const canvas = await html2canvas(batchPrintRef.current, {
-            scale: 3,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: '#ffffff'
-          });
-
-          const imgData = canvas.toDataURL('image/jpeg', 0.95);
-          if (i > 0) {
-            pdf.addPage('a4', 'landscape');
-          }
-          pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+        if (i > 0) {
+          pdf.addPage('a4', 'landscape');
         }
+        pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+
+        // Yield execution briefly for UI responsiveness
+        await new Promise(r => setTimeout(r, 20));
       }
 
       const fileName = `เกียรติบัตรทั้งหมด_${currentAct.title}_${selectedLevel}_ปี${academicYear}.pdf`;
