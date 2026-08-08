@@ -224,6 +224,15 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     getCertificateConfigs().then(setAllCertConfigs);
   }, []);
 
+  const getFullAwardText = (awardStr: string) => {
+    if (awardStr === 'รางวัลชนะเลิศ') return 'ได้รับรางวัลชนะเลิศ';
+    if (awardStr === 'รางวัลรองชนะเลิศอันดับ 1') return 'ได้รับรางวัลรองชนะเลิศอันดับ 1';
+    if (awardStr === 'รางวัลรองชนะเลิศอันดับ 2') return 'ได้รับรางวัลรองชนะเลิศอันดับ 2';
+    if (awardStr === 'รางวัลชมเชย') return 'ได้รับรางวัลชมเชย';
+    if (awardStr === 'เข้าร่วมการแข่งขัน') return 'ได้เข้าร่วมการแข่งขัน';
+    return `ได้รับ${awardStr}`;
+  };
+
   const batchCertConfig = allCertConfigs.find(
     c => c.activityId === selectedActivityId && c.academicYear === academicYear
   );
