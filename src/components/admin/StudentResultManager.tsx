@@ -302,6 +302,19 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
     const fontFamily = config?.fontFamily || 'Sarabun';
 
+    // Ensure selected custom font is 100% loaded into browser memory before rendering to Canvas 2D
+    try {
+      if (fontFamily && fontFamily !== 'Sarabun') {
+        await Promise.all([
+          document.fonts.load(`bold 50px "${fontFamily}"`),
+          document.fonts.load(`normal 50px "${fontFamily}"`),
+          document.fonts.ready
+        ]);
+      }
+    } catch (e) {
+      console.warn("Font pre-load warning:", e);
+    }
+
     // 1. Student Name
     if (config?.visibleElements?.studentName ?? true) {
       const pos = config?.positions?.studentName || { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' };

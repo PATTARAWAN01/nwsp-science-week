@@ -161,10 +161,17 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
   const fontOptions = [
     { value: 'Sarabun', label: 'Sarabun (สารบัญ - มาตรฐานราชการ)' },
     { value: 'Prompt', label: 'Prompt (พรม - ทันสมัย อ่านง่าย)' },
-    { value: 'Charm', label: 'Charm (ชาม - ลายมืออ่อนช้อย)' },
-    { value: 'Chonburi', label: 'Chonburi (ชลบุรี - ตัวหนาพิธีการ)' },
-    { value: 'Mali', label: 'Mali (มะลิ - ลายมือน่ารัก)' },
+    { value: 'Charm', label: 'Charm (ชาม - ลายมืออ่อนช้อย หรูหรา)' },
+    { value: 'Charmonman', label: 'Charmonman (ชามอนมาน - ประดิษฐ์พิธีการเกียรติบัตร)' },
+    { value: 'Chonburi', label: 'Chonburi (ชลบุรี - ตัวหนาพิธีการ เด่นชัด)' },
     { value: 'Niramit', label: 'Niramit (นิรมิต - หรูหราเป็นทางการ)' },
+    { value: 'Bai Jamjuree', label: 'Bai Jamjuree (จามจุรี - โมเดิร์นเรียบหรู)' },
+    { value: 'Chakra Petch', label: 'Chakra Petch (จักรเพชร - สไตล์วิทย์ & เทคโนโลยี)' },
+    { value: 'Taviraj', label: 'Taviraj (ทวิราช - มีหัวทรงคุณค่า)' },
+    { value: 'Trirong', label: 'Trirong (ไตรรงค์ - ตัวตรงสง่างาม)' },
+    { value: 'Mali', label: 'Mali (มะลิ - ลายมือน่ารัก)' },
+    { value: 'Itim', label: 'Itim (ไอติม - ลายมือเป็นกันเอง)' },
+    { value: 'Pattaya', label: 'Pattaya (พัทยา - หัวมนประดิษฐ์)' },
   ];
 
   const getFontClass = (fontName?: string) => {
