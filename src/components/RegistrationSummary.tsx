@@ -29,18 +29,22 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
     activityTitle: string;
     level: string;
     teacherNames: string;
-    teamsList: {
-      teamName?: string;
-      members: {
-        studentId: string;
-        fullName: string;
-        grade: string;
-        room: number;
+    pages: {
+      pageIndex: number;
+      startTeamNumber: number;
+      teams: {
+        teamName?: string;
+        members: {
+          studentId: string;
+          fullName: string;
+          grade: string;
+          room: number;
+        }[];
       }[];
     }[];
   } | null>(null);
 
-  const printSheetRef = useRef<HTMLDivElement>(null);
+  const pagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Filter registrations
   const filteredRegistrations = registrations.filter(reg => {
@@ -72,7 +76,7 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
     .filter(r => r.academicYear === academicYear && r.level === 'ม.ปลาย')
     .reduce((acc, r) => acc + r.members.length, 0);
 
-  // Export Master Printable PDF Sign-in Sheet per Activity & Level (Sorted Chronologically Ascending by registeredAt)
+  // Export Master Printable PDF Sign-in Sheet per Activity & Level with Page-Chunking
   const handleExportSignInSheet = async (actId: string, levelFilter: string) => {
     const act = activities.find(a => a.id === actId);
     if (!act) return;
@@ -83,7 +87,7 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
       r => r.academicYear === academicYear && r.activityId === actId && (levelFilter === 'all' || r.level === levelFilter)
     );
 
-    // Requirement: Sort chronologically ascending by registration date & time (First registered = First in PDF)
+    // Sort chronologically ascending by registration date & time
     const sortedRegs = [...targetRegs].sort(
       (a, b) => new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime()
     );
@@ -98,49 +102,78 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
       }))
     }));
 
+    // Paginate teams cleanly into A4 Page chunks (approx 12-14 student rows per page)
+    const pages: {
+      pageIndex: number;
+      startTeamNumber: number;
+      teams: typeof teamsList;
+    }[] = [];
+
+    let currentPageTeams: typeof teamsList = [];
+    let currentRowsCount = 0;
+    let startTeamNum = 1;
+
+    for (let i = 0; i < teamsList.length; i++) {
+      const team = teamsList[i];
+      const teamRowCount = team.members.length;
+
+      if (currentRowsCount + teamRowCount > 13 && currentPageTeams.length > 0) {
+        pages.push({
+          pageIndex: pages.length,
+          startTeamNumber: startTeamNum,
+          teams: currentPageTeams
+        });
+        startTeamNum += currentPageTeams.length;
+        currentPageTeams = [team];
+        currentRowsCount = teamRowCount;
+      } else {
+        currentPageTeams.push(team);
+        currentRowsCount += teamRowCount;
+      }
+    }
+
+    if (currentPageTeams.length > 0) {
+      pages.push({
+        pageIndex: pages.length,
+        startTeamNumber: startTeamNum,
+        teams: currentPageTeams
+      });
+    }
+
     setPrintData({
       activityTitle: act.title,
       level: levelFilter === 'all' ? 'มัธยมศึกษาตอนต้นและตอนปลาย' : levelFilter,
       teacherNames: act.teachers ? act.teachers.join(', ') : 'กลุ่มสาระวิทยาศาสตร์และเทคโนโลยี',
-      teamsList
+      pages
     });
 
     setTimeout(async () => {
-      if (!printSheetRef.current) {
+      if (!pagesContainerRef.current) {
         setExportingActivityId(null);
         return;
       }
 
       try {
-        const canvas = await html2canvas(printSheetRef.current, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff'
-        });
-
-        const imgData = canvas.toDataURL('image/png');
+        const pageNodes = Array.from(pagesContainerRef.current.children) as HTMLElement[];
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
           format: 'a4'
         });
 
-        const imgWidth = 210; // A4 width in mm
-        const pageHeight = 297; // A4 height in mm
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
+        for (let pIdx = 0; pIdx < pageNodes.length; pIdx++) {
+          const node = pageNodes[pIdx];
+          const canvas = await html2canvas(node, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff'
+          });
 
-        // Page 1
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        // Additional pages if student list exceeds 1 page
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
+          const imgData = canvas.toDataURL('image/png');
+          if (pIdx > 0) {
+            pdf.addPage('a4', 'portrait');
+          }
+          pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
         }
 
         pdf.save(`ใบลงชื่อและลงผลรางวัล_${act.title}_${levelFilter}.pdf`);
@@ -150,7 +183,7 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
       } finally {
         setExportingActivityId(null);
       }
-    }, 400);
+    }, 450);
   };
 
   return (
@@ -344,115 +377,115 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
         </div>
       )}
 
-      {/* Offscreen Printable Sign-in Sheet Renderer (Chronological Order + Team Indexing) */}
+      {/* Offscreen Printable Sign-in Sheet Renderer (A4 Page-Chunked Rendering) */}
       {printData && (
         <div className="fixed top-[-9999px] left-[-9999px] pointer-events-none">
-          <div
-            ref={printSheetRef}
-            className="w-[794px] min-h-[1123px] bg-white p-10 text-slate-900 font-sarabun space-y-6"
-          >
-            {/* School Header */}
-            <div className="text-center space-y-1.5 border-b-2 border-slate-800 pb-4">
-              <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
-                ใบบันทึกการลงชื่อเข้าแข่งขันและลงผลรางวัล
-              </h1>
-              <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
-                กิจกรรม{printData.activityTitle} ({printData.level})
-              </h2>
-              <h3 className="text-sm font-semibold text-slate-700">
-                โรงเรียนหนองวัวซอพิทยาคม • ปีการศึกษา {academicYear}
-              </h3>
-              <div className="text-xs text-slate-600 font-medium">
-                <strong>ครูผู้ดูแลกิจกรรม:</strong> {printData.teacherNames}
-              </div>
-            </div>
+          <div ref={pagesContainerRef} className="flex flex-col gap-10">
+            {printData.pages.map((pageObj, pageIdx) => (
+              <div
+                key={pageIdx}
+                className="w-[794px] min-h-[1123px] bg-white p-10 text-slate-900 font-sarabun flex flex-col justify-between"
+              >
+                <div className="space-y-5 flex-1">
+                  {/* School Header */}
+                  <div className="text-center space-y-1.5 border-b-2 border-slate-800 pb-4">
+                    <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                      ใบบันทึกการลงชื่อเข้าแข่งขันและลงผลรางวัล
+                    </h1>
+                    <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                      กิจกรรม{printData.activityTitle} ({printData.level}) {printData.pages.length > 1 && `(หน้า ${pageIdx + 1}/${printData.pages.length})`}
+                    </h2>
+                    <h3 className="text-sm font-semibold text-slate-700">
+                      โรงเรียนหนองวัวซอพิทยาคม • ปีการศึกษา {academicYear}
+                    </h3>
+                    <div className="text-xs text-slate-600 font-medium">
+                      <strong>ครูผู้ดูแลกิจกรรม:</strong> {printData.teacherNames}
+                    </div>
+                  </div>
 
-            {/* Attendance Table with Chronological Team Sequence Indexing (1, 2, 3...) */}
-            <table className="w-full border-collapse border border-slate-400 text-xs font-sarabun">
-              <thead>
-                <tr className="bg-slate-100 text-center font-bold border-b border-slate-400">
-                  <th className="border border-slate-400 py-2 px-1 w-10">ลำดับ</th>
-                  <th className="border border-slate-400 py-2 px-2 w-24">ชื่อทีม / ประเภท</th>
-                  <th className="border border-slate-400 py-2 px-1 w-14">รหัส</th>
-                  <th className="border border-slate-400 py-2 px-3 text-left">ชื่อ - นามสกุล ผู้เข้าแข่งขัน</th>
-                  <th className="border border-slate-400 py-2 px-1 w-14">ชั้น/ห้อง</th>
-                  <th className="border border-slate-400 py-2 px-2 w-28 text-center">ลายมือชื่อ</th>
-                  <th className="border border-slate-400 py-2 px-1 w-20 text-center">คะแนนของทีม</th>
-                  <th className="border border-slate-400 py-2 px-1 w-20 text-center">รางวัล</th>
-                </tr>
-              </thead>
-              <tbody>
-                {printData.teamsList.map((team, tIdx) => {
-                  const rowCount = team.members.length;
-                  return team.members.map((m, mIdx) => {
-                    return (
-                      <tr key={`${tIdx}-${mIdx}`} className="border-b border-slate-300">
-                        
-                        {/* Merged Chronological Team Sequence Index (สมัครก่อนอยู่อันดับ 1, 2, 3...) */}
-                        {mIdx === 0 && (
-                          <td
-                            rowSpan={rowCount}
-                            className="border border-slate-400 py-2 text-center font-bold align-middle bg-slate-50/50"
-                          >
-                            {tIdx + 1}
-                          </td>
-                        )}
-
-                        {/* Merged Team Name Cell */}
-                        {mIdx === 0 && (
-                          <td
-                            rowSpan={rowCount}
-                            className="border border-slate-400 py-2 px-2 text-center font-bold bg-slate-50/50 align-middle"
-                          >
-                            {team.teamName || 'ประเภทเดี่ยว'}
-                          </td>
-                        )}
-
-                        <td className="border border-slate-400 py-2 text-center font-mono">{m.studentId}</td>
-                        <td className="border border-slate-400 py-2 px-3 font-semibold">{m.fullName}</td>
-                        <td className="border border-slate-400 py-2 text-center">{m.grade}/{m.room}</td>
-
-                        {/* Individual Dotted Line for Signature for EVERY student */}
-                        <td className="border border-slate-400 py-2 px-1 text-center text-slate-300 font-light">
-                          ...............................
-                        </td>
-
-                        {/* Merged Team Score Cell */}
-                        {mIdx === 0 && (
-                          <td
-                            rowSpan={rowCount}
-                            className="border border-slate-400 py-2 px-1 text-center text-slate-400 font-light align-middle"
-                          >
-                            .............
-                          </td>
-                        )}
-
-                        {/* Merged Team Award Cell */}
-                        {mIdx === 0 && (
-                          <td
-                            rowSpan={rowCount}
-                            className="border border-slate-400 py-2 px-1 text-center text-slate-400 font-light align-middle"
-                          >
-                            .............
-                          </td>
-                        )}
+                  {/* Attendance Table */}
+                  <table className="w-full border-collapse border border-slate-400 text-xs font-sarabun">
+                    <thead>
+                      <tr className="bg-slate-100 text-center font-bold border-b border-slate-400">
+                        <th className="border border-slate-400 py-2 px-1 w-10">ลำดับ</th>
+                        <th className="border border-slate-400 py-2 px-2 w-24">ชื่อทีม / ประเภท</th>
+                        <th className="border border-slate-400 py-2 px-1 w-14">รหัส</th>
+                        <th className="border border-slate-400 py-2 px-3 text-left">ชื่อ - นามสกุล ผู้เข้าแข่งขัน</th>
+                        <th className="border border-slate-400 py-2 px-1 w-14">ชั้น/ห้อง</th>
+                        <th className="border border-slate-400 py-2 px-2 w-28 text-center">ลายมือชื่อ</th>
+                        <th className="border border-slate-400 py-2 px-1 w-20 text-center">คะแนนของทีม</th>
+                        <th className="border border-slate-400 py-2 px-1 w-20 text-center">รางวัล</th>
                       </tr>
-                    );
-                  });
-                })}
-              </tbody>
-            </table>
-
-            {/* Footer Signature Box for ALL Supervising Teachers */}
-            <div className="pt-8 flex flex-wrap justify-end gap-x-8 gap-y-6">
-              {printData.teacherNames.split(',').map((teacherName, tIdx) => (
-                <div key={tIdx} className="text-center space-y-1.5 text-xs font-sarabun">
-                  <div>ลงชื่อ..........................................................กรรมการผู้คุมการแข่งขัน</div>
-                  <div className="font-bold text-slate-800">( {teacherName.trim()} )</div>
-                  <div className="text-slate-500 text-[11px]">วันที่............/............/............</div>
+                    </thead>
+                    <tbody>
+                      {pageObj.teams.map((team, tIdx) => {
+                        const rowCount = team.members.length;
+                        const globalTeamNum = pageObj.startTeamNumber + tIdx;
+                        return team.members.map((m, mIdx) => {
+                          return (
+                            <tr key={`${tIdx}-${mIdx}`} className="border-b border-slate-300">
+                              {mIdx === 0 && (
+                                <td
+                                  rowSpan={rowCount}
+                                  className="border border-slate-400 py-2 text-center font-bold align-middle bg-slate-50/50"
+                                >
+                                  {globalTeamNum}
+                                </td>
+                              )}
+                              {mIdx === 0 && (
+                                <td
+                                  rowSpan={rowCount}
+                                  className="border border-slate-400 py-2 px-2 text-center font-bold bg-slate-50/50 align-middle"
+                                >
+                                  {team.teamName || 'ประเภทเดี่ยว'}
+                                </td>
+                              )}
+                              <td className="border border-slate-400 py-2 text-center font-mono">{m.studentId}</td>
+                              <td className="border border-slate-400 py-2 px-3 font-semibold">{m.fullName}</td>
+                              <td className="border border-slate-400 py-2 text-center">{m.grade}/{m.room}</td>
+                              <td className="border border-slate-400 py-2 px-1 text-center text-slate-300 font-light">
+                                ...............................
+                              </td>
+                              {mIdx === 0 && (
+                                <td
+                                  rowSpan={rowCount}
+                                  className="border border-slate-400 py-2 px-1 text-center text-slate-400 font-light align-middle"
+                                >
+                                  .............
+                                </td>
+                              )}
+                              {mIdx === 0 && (
+                                <td
+                                  rowSpan={rowCount}
+                                  className="border border-slate-400 py-2 px-1 text-center text-slate-400 font-light align-middle"
+                                >
+                                  .............
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        });
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
+
+                {/* Footer Signature Box for ALL Supervising Teachers - Shown on Final Page */}
+                {pageIdx === printData.pages.length - 1 && (
+                  <div className="pt-6 pb-2 border-t border-slate-200 mt-auto">
+                    <div className="flex flex-wrap justify-end gap-x-8 gap-y-6">
+                      {printData.teacherNames.split(',').map((teacherName, tIdx) => (
+                        <div key={tIdx} className="text-center space-y-1.5 text-xs font-sarabun">
+                          <div>ลงชื่อ..........................................................กรรมการผู้คุมการแข่งขัน</div>
+                          <div className="font-bold text-slate-800">( {teacherName.trim()} )</div>
+                          <div className="text-slate-500 text-[11px]">วันที่............/............/............</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
