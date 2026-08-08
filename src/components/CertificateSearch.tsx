@@ -176,16 +176,21 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
 
     const fontFamily = config?.fontFamily || 'Sarabun';
 
-    // Ensure selected custom font is 100% loaded into browser memory before rendering to Canvas 2D
+    // Ensure selected custom font stylesheet & font binary are 100% loaded before rendering to Canvas 2D
     if (fontFamily && fontFamily !== 'Sarabun') {
       const fontId = `gfont-${fontFamily.replace(/\s+/g, '-').toLowerCase()}`;
       if (!document.getElementById(fontId)) {
-        const link = document.createElement('link');
-        link.id = fontId;
-        link.rel = 'stylesheet';
-        const fontQuery = fontFamily.replace(/\s+/g, '+');
-        link.href = `https://fonts.googleapis.com/css2?family=${fontQuery}:wght@400;600;700&display=swap`;
-        document.head.appendChild(link);
+        await new Promise<void>((resolve) => {
+          const link = document.createElement('link');
+          link.id = fontId;
+          link.rel = 'stylesheet';
+          const fontQuery = fontFamily.replace(/\s+/g, '+');
+          link.href = `https://fonts.googleapis.com/css2?family=${fontQuery}:wght@400;600;700&display=swap`;
+          link.onload = () => resolve();
+          link.onerror = () => resolve();
+          document.head.appendChild(link);
+          setTimeout(resolve, 1500);
+        });
       }
 
       try {
