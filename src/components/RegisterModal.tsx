@@ -78,17 +78,13 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
 
           if (isJuniorLevel && !currentIsJunior) {
             sanitizedGrade = 'ม.1';
-            if (sanitizedTitle === 'นาย') sanitizedTitle = 'เด็กชาย';
-            if (sanitizedTitle === 'นางสาว') sanitizedTitle = 'เด็กหญิง';
           } else if (!isJuniorLevel && currentIsJunior) {
             sanitizedGrade = 'ม.4';
-            if (sanitizedTitle === 'เด็กชาย') sanitizedTitle = 'นาย';
-            if (sanitizedTitle === 'เด็กหญิง') sanitizedTitle = 'นางสาว';
           }
 
           newMembers.push({
             ...p,
-            title: sanitizedTitle || defaultTitle,
+            title: p.title || defaultTitle,
             grade: sanitizedGrade || defaultGrade,
           });
         } else {

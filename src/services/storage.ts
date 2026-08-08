@@ -296,17 +296,12 @@ const sanitizeRegistrationGrade = (r: Registration): Registration => {
   const sanitizedMembers = r.members.map(m => {
     const isJuniorGrade = ['ม.1', 'ม.2', 'ม.3'].includes(m.grade);
     let g = m.grade;
-    let t = m.title;
     if (!isJunior && isJuniorGrade) {
       g = 'ม.4';
-      if (t === 'เด็กชาย') t = 'นาย';
-      if (t === 'เด็กหญิง') t = 'นางสาว';
     } else if (isJunior && !isJuniorGrade) {
       g = 'ม.1';
-      if (t === 'นาย') t = 'เด็กชาย';
-      if (t === 'นางสาว') t = 'เด็กหญิง';
     }
-    return { ...m, grade: g as any, title: t as any };
+    return { ...m, grade: g as any };
   });
   return { ...r, members: sanitizedMembers };
 };
