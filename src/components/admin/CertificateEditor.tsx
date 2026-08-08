@@ -14,11 +14,13 @@ import {
 interface CertificateEditorProps {
   activities: Activity[];
   academicYear: string;
+  onRefresh?: () => void;
 }
 
 export const CertificateEditor: React.FC<CertificateEditorProps> = ({
   activities,
-  academicYear
+  academicYear,
+  onRefresh
 }) => {
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
   const [selectedLevel, setSelectedLevel] = useState<LevelCategory>('ม.ต้น');
@@ -70,23 +72,28 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
   }, [activities]);
 
   useEffect(() => {
+    let isMounted = true;
     const loadConfig = async () => {
       const allConfigs = await getCertificateConfigs();
+      if (!isMounted) return;
       const match = allConfigs.find(
-        c => c.activityId === selectedActivityId && c.academicYear === academicYear
+        c => c && c.activityId === selectedActivityId && (!academicYear || c.academicYear === academicYear)
+      ) || allConfigs.find(
+        c => c && c.activityId === selectedActivityId
       );
       if (match) {
-        if (match.bgImageUrl) setBgImageUrl(match.bgImageUrl);
+        if (match.bgImageUrl !== undefined) setBgImageUrl(match.bgImageUrl);
         if (match.fontFamily) setCertificateFont(match.fontFamily);
         if (match.positions) setPositions(match.positions);
       } else {
-        // Reset background image if no config exists for this activity
         setBgImageUrl('');
+        setCertificateFont('Sarabun');
       }
     };
     if (selectedActivityId) {
       loadConfig();
     }
+    return () => { isMounted = false; };
   }, [selectedActivityId, academicYear]);
   useEffect(() => {
     if (certificateFont) {
@@ -159,6 +166,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
     };
 
     await saveCertificateConfig(config);
+    if (onRefresh) onRefresh();
     alert(`บันทึกรูปแบบแม่แบบและฟอนต์ (${certificateFont}) ลงระบบออนไลน์ Cloud Firestore เรียบร้อยแล้ว!\nนักเรียนและครูทุกอุปกรณ์จะเห็นรูปแบบนี้ตรงกัน 100%`);
   };
 

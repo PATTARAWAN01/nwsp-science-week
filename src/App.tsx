@@ -287,6 +287,7 @@ export function App() {
               <CertificateEditor
                 activities={activities}
                 academicYear={academicYear}
+                onRefresh={loadData}
               />
             )}
 
