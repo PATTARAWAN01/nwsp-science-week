@@ -301,6 +301,12 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     }
 
     const fontFamily = config?.fontFamily || 'Sarabun';
+    const cleanFontName = fontFamily.replace(/["']/g, '').trim();
+
+    const getCanvasFont = (weight: string, size: number) => {
+      const w = weight === 'bold' ? '700' : (weight || '400');
+      return `${w} ${size}px ${cleanFontName}, Sarabun, sans-serif`;
+    };
 
     // Ensure selected custom font stylesheet & font binary are 100% loaded before rendering to Canvas 2D
     if (fontFamily && fontFamily !== 'Sarabun') {
@@ -321,8 +327,8 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
       try {
         await Promise.all([
-          document.fonts.load(`bold 50px "${fontFamily}"`),
-          document.fonts.load(`normal 50px "${fontFamily}"`),
+          document.fonts.load(`700 50px ${cleanFontName}`),
+          document.fonts.load(`400 50px ${cleanFontName}`),
           document.fonts.ready
         ]);
       } catch (e) {
@@ -334,7 +340,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     if (config?.visibleElements?.studentName ?? true) {
       const pos = config?.positions?.studentName || { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' };
       const scaledSize = Math.round(pos.fontSize * 1.7);
-      ctx.font = `${pos.fontWeight || 'bold'} ${scaledSize}px "${fontFamily}", Sarabun, sans-serif`;
+      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
       ctx.fillStyle = pos.color || '#0c4a6e';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -345,7 +351,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     if (config?.visibleElements?.award ?? true) {
       const pos = config?.positions?.award || { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' };
       const scaledSize = Math.round(pos.fontSize * 1.7);
-      ctx.font = `${pos.fontWeight || 'bold'} ${scaledSize}px "${fontFamily}", Sarabun, sans-serif`;
+      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
       ctx.fillStyle = pos.color || '#b45309';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -357,7 +363,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
       const pos = config?.positions?.activityName || { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' };
       const scaledSize = Math.round(pos.fontSize * 1.7);
       const levelStr = item.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย';
-      ctx.font = `${pos.fontWeight || 'bold'} ${scaledSize}px "${fontFamily}", Sarabun, sans-serif`;
+      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
       ctx.fillStyle = pos.color || '#334155';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -368,7 +374,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     if (config?.visibleElements?.certId ?? true) {
       const pos = config?.positions?.certId || { x: 75, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' };
       const scaledSize = Math.round(pos.fontSize * 1.6);
-      ctx.font = `normal ${scaledSize}px monospace, "${fontFamily}", sans-serif`;
+      ctx.font = getCanvasFont(pos.fontWeight || 'normal', scaledSize);
       ctx.fillStyle = pos.color || '#64748b';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
