@@ -38,17 +38,22 @@ interface StudentResultManagerProps {
 }
 
 export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
-  registrations,
-  results,
-  activities,
+  registrations = [],
+  results = [],
+  activities = [],
   academicYear,
   onRefresh
 }) => {
+  // Safe Top-Level Arrays
+  const safeRegistrations = Array.isArray(registrations) ? registrations.filter(Boolean) : [];
+  const safeResults = Array.isArray(results) ? results.filter(Boolean) : [];
+  const safeActivities = Array.isArray(activities) ? activities.filter(Boolean) : [];
+
   const [activeTab, setActiveTab] = useState<'applicants' | 'recordResults'>('applicants');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Result Recording Filters
-  const [selectedActivityId, setSelectedActivityId] = useState<string>(activities[0]?.id || '');
+  const [selectedActivityId, setSelectedActivityId] = useState<string>(safeActivities[0]?.id || '');
   const [selectedLevel, setSelectedLevel] = useState<'ม.ต้น' | 'ม.ปลาย'>('ม.ต้น');
 
   // Editing Registration State
@@ -68,10 +73,14 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
   useEffect(() => {
     getCertNumberConfig(academicYear).then((cfg) => {
-      setCertSeqConfig(cfg);
-      setCfgPrefixInput(cfg.prefix);
-      setCfgStartNumInput(cfg.startingNumber.toString());
-      setCfgSuffixInput(cfg.suffix);
+      if (cfg) {
+        setCertSeqConfig(cfg);
+        setCfgPrefixInput(cfg.prefix || '');
+        setCfgStartNumInput((cfg.startingNumber || 1001).toString());
+        setCfgSuffixInput(cfg.suffix || '');
+      }
+    }).catch(err => {
+      console.warn("getCertNumberConfig warning:", err);
     });
   }, [academicYear]);
 
@@ -82,19 +91,20 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
   const [scoreInput, setScoreInput] = useState<string>('');
 
   // Filter registrations for current year
-  const filteredRegs = registrations.filter(r => {
+  const filteredRegs = safeRegistrations.filter(r => {
+    if (!r) return false;
     const matchesYear = r.academicYear === academicYear;
     const searchClean = searchTerm.trim().toLowerCase();
     const matchesSearch = !searchClean || 
-      r.activityTitle.toLowerCase().includes(searchClean) ||
+      (r.activityTitle && r.activityTitle.toLowerCase().includes(searchClean)) ||
       (r.teamName && r.teamName.toLowerCase().includes(searchClean)) ||
-      r.members.some(m => m.fullName.toLowerCase().includes(searchClean) || m.studentId.includes(searchClean));
+      (r.members && r.members.some(m => m && (m.fullName?.toLowerCase().includes(searchClean) || m.studentId?.includes(searchClean))));
     return matchesYear && matchesSearch;
   });
 
   // Filter registrations for Award Recording tab
-  const activityRegistrations = registrations.filter(r => 
-    r.academicYear === academicYear && r.activityId === selectedActivityId && r.level === selectedLevel
+  const activityRegistrations = safeRegistrations.filter(r => 
+    r && r.academicYear === academicYear && r.activityId === selectedActivityId && r.level === selectedLevel
   );
 
   const handleDeleteReg = async (id: string) => {
@@ -104,11 +114,19 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     }
   };
 
+  const formatCertNum = (num: number) => {
+    const pad = certSeqConfig?.padding || 0;
+    const numStr = pad > 0 ? String(num).padStart(pad, '0') : String(num);
+    const prefix = certSeqConfig?.prefix || '';
+    const suffix = certSeqConfig?.suffix || '';
+    return `${prefix}${numStr}${suffix}`;
+  };
+
   const generateNextCertId = (seqIndex?: number) => {
-    const yearResults = results.filter(r => r.academicYear === academicYear);
+    const yearResults = safeResults.filter(r => r && r.academicYear === academicYear);
     const idx = seqIndex !== undefined ? seqIndex : yearResults.length;
-    const num = certSeqConfig.startingNumber + idx;
-    return `${certSeqConfig.prefix}${num}${certSeqConfig.suffix}`;
+    const startNum = certSeqConfig?.startingNumber || 1001;
+    return formatCertNum(startNum + idx);
   };
 
   const handleOpenRecordAwardModal = (reg: Registration) => {
@@ -116,7 +134,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     setSelectedAward('รางวัลชนะเลิศ');
     
     // Check existing result for this reg
-    const existingRes = results.find(r => r.registrationId === reg.id);
+    const existingRes = safeResults.find(r => r && r.registrationId === reg.id);
     if (existingRes && existingRes.certificateId) {
       setCertIdInput(existingRes.certificateId);
       setSelectedAward(existingRes.award);
@@ -129,9 +147,9 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
   };
 
   const handleAutoGenerateClick = () => {
-    let seq = results.filter(r => r.academicYear === academicYear).length;
+    let seq = safeResults.filter(r => r && r.academicYear === academicYear).length;
     let candidate = generateNextCertId(seq);
-    while (results.some(r => r.academicYear === academicYear && r.certificateId === candidate && r.registrationId !== recordingReg?.id)) {
+    while (safeResults.some(r => r && r.academicYear === academicYear && r.certificateId === candidate && r.registrationId !== recordingReg?.id)) {
       seq++;
       candidate = generateNextCertId(seq);
     }
@@ -154,7 +172,8 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
   };
 
   const duplicateResult = certIdInput.trim()
-    ? results.find(r => 
+    ? safeResults.find(r => 
+        r && 
         r.academicYear === academicYear && 
         r.certificateId && 
         r.certificateId.trim().toLowerCase() === certIdInput.trim().toLowerCase() && 
@@ -203,7 +222,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     alert("บันทึกการแก้ไขข้อมูลผู้สมัคร (ระดับชั้น/ห้องเรียน) เรียบร้อยแล้ว");
   };
 
-  const currentActivity = activities.find(a => a.id === selectedActivityId);
+  const currentActivity = safeActivities.find(a => a && a.id === selectedActivityId);
 
   // Batch PDF Export State
   const [isExportingBatchPDF, setIsExportingBatchPDF] = useState(false);

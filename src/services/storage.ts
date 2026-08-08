@@ -438,20 +438,23 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
 
   // 1. Local Storage
   const localList = getLocal<CertificateConfig[]>(STORAGE_KEYS.CERT_CONFIGS, []);
-  localList.forEach(c => {
-    const key = `${c.activityId}_${c.academicYear}`;
-    configMap.set(key, c);
-  });
+  if (Array.isArray(localList)) {
+    localList.forEach(c => {
+      if (c && c.activityId) {
+        const key = `${c.activityId}_${c.academicYear || ''}`;
+        configMap.set(key, c);
+      }
+    });
+  }
 
   // 2. Cloud Firestore (Authoritative Online Database Sync across all devices)
   if (isFirebaseConfigured() && db) {
     try {
-      const querySnapshot = await fetchWithTimeout(getDocs(collection(db, 'certificate_configs')), 4000);
+      const querySnapshot = await fetchWithTimeout(getDocs(collection(db, 'certificate_configs')), 6000);
       querySnapshot.forEach((docSnap) => {
         const cloudConfig = docSnap.data() as CertificateConfig;
         if (cloudConfig && cloudConfig.activityId) {
-          const key = `${cloudConfig.activityId}_${cloudConfig.academicYear}`;
-          // Always prefer online Cloud Firestore configs across devices
+          const key = `${cloudConfig.activityId}_${cloudConfig.academicYear || ''}`;
           configMap.set(key, cloudConfig);
         }
       });
