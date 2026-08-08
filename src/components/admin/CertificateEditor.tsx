@@ -275,8 +275,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                 { key: 'studentName', label: '1. ชื่อ - นามสกุล นักเรียน' },
                 { key: 'award', label: '2. รางวัลที่ได้รับ' },
                 { key: 'activityName', label: '3. ชื่อกิจกรรม และระดับชั้น (อยู่บรรทัดเดียวกัน)' },
-                { key: 'academicYearText', label: '4. ข้อความปีการศึกษา' },
-                { key: 'certId', label: '5. รหัสเกียรติบัตร' },
+                { key: 'certId', label: '4. รหัสเกียรติบัตร' },
               ].map(el => (
                 <label key={el.key} className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-xl border border-slate-200 hover:bg-slate-50">
                   <input
@@ -334,8 +333,8 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
 
           {/* Text Positions Adjuster */}
           <div className="glass-card p-5 rounded-2xl border border-white/80 space-y-4">
-            <h4 className="font-bold text-sm text-slate-800 border-b pb-2">
-              ปรับตำแหน่งและขนาดข้อความ
+            <h4 className="font-bold text-sm text-slate-800 border-b pb-2 flex items-center justify-between">
+              <span>ปรับตำแหน่งและขนาดข้อความ</span>
             </h4>
 
             {/* Element Selector */}
@@ -344,8 +343,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                 { id: 'studentName', label: '1. ชื่อนักเรียน' },
                 { id: 'award', label: '2. รางวัลที่ได้รับ' },
                 { id: 'activityName', label: '3. กิจกรรม & ระดับชั้น' },
-                { id: 'academicYearText', label: '4. ปีการศึกษา' },
-                { id: 'certId', label: '5. รหัสเกียรติบัตร' },
+                { id: 'certId', label: '4. รหัสเกียรติบัตร' },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -364,8 +362,15 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
             {/* Controls for Active Element */}
             {activeElementKey && (
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 text-xs">
-                <div className="font-bold text-slate-800 border-b pb-1">
-                  ตั้งค่าข้อความ: {activeElementKey}
+                <div className="font-bold text-slate-800 border-b pb-1 flex items-center justify-between">
+                  <span>ตั้งค่าข้อความ: {activeElementKey}</span>
+                  <button
+                    type="button"
+                    onClick={() => handlePositionChange(activeElementKey, 'x', 50)}
+                    className="px-2 py-0.5 bg-sky-100 hover:bg-sky-200 text-sky-700 font-bold rounded text-[10px] flex items-center gap-1 transition-colors"
+                  >
+                    🎯 จัดกึ่งกลางแนวนอน (X=50%)
+                  </button>
                 </div>
 
                 <div>
@@ -485,21 +490,6 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                   }}
                 >
                   {currentActivity?.title || 'การแข่งขันตอบปัญหาวิทยาศาสตร์'} {selectedLevel === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}
-                </div>
-              )}
-
-              {/* Academic Year Text */}
-              {visibleElements.academicYearText && (
-                <div
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap transition-all"
-                  style={{
-                    left: `${positions.academicYearText?.x ?? positions.activityName.x}%`,
-                    top: `${positions.academicYearText?.y ?? (positions.activityName.y + 7)}%`,
-                    fontSize: `${(positions.academicYearText?.fontSize ?? (positions.activityName.fontSize - 4)) * 0.5}px`,
-                    color: positions.academicYearText?.color ?? positions.activityName.color
-                  }}
-                >
-                  เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {academicYear}
                 </div>
               )}
 

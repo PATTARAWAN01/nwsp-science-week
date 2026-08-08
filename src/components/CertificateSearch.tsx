@@ -210,18 +210,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       ctx.fillText(`${item.activityTitle} ${levelStr}`, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
     }
 
-    // 4. Academic Year Text
-    if (config?.visibleElements?.academicYearText ?? true) {
-      const pos = config?.positions?.academicYearText || { x: 50, y: 67, fontSize: 16, color: '#475569', fontWeight: 'normal' };
-      const scaledSize = Math.round(pos.fontSize * 1.7);
-      ctx.font = `${pos.fontWeight || 'normal'} ${scaledSize}px "${fontFamily}", Sarabun, sans-serif`;
-      ctx.fillStyle = pos.color || '#475569';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา ${item.academicYear}`, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
-    }
-
-    // 5. Certificate ID
+    // 4. Certificate ID
     if (config?.visibleElements?.certId ?? true) {
       const pos = config?.positions?.certId || { x: 75, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' };
       const scaledSize = Math.round(pos.fontSize * 1.6);
@@ -563,26 +552,6 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                     }}
                   >
                     {previewCert.result.activityTitle} {previewCert.result.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}
-                  </div>
-                )}
-
-                {/* Configured Academic Year Text */}
-                {(previewCert.config?.visibleElements?.academicYearText ?? true) && (
-                  <div
-                    className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap"
-                    style={previewCert.config?.positions?.academicYearText ? {
-                      left: `${previewCert.config.positions.academicYearText.x}%`,
-                      top: `${previewCert.config.positions.academicYearText.y}%`,
-                      fontSize: `${previewCert.config.positions.academicYearText.fontSize * 0.5}px`,
-                      color: previewCert.config.positions.academicYearText.color
-                    } : {
-                      left: '50%',
-                      top: '67%',
-                      fontSize: '10px',
-                      color: '#475569'
-                    }}
-                  >
-                    เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {previewCert.result.academicYear}
                   </div>
                 )}
 
