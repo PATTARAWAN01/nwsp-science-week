@@ -125,10 +125,24 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
           format: 'a4'
         });
 
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
 
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        // Page 1
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        // Additional pages if student list exceeds 1 page
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+
         pdf.save(`ใบลงชื่อและลงผลรางวัล_${act.title}_${levelFilter}.pdf`);
       } catch (err) {
         console.error("PDF export failed:", err);
@@ -429,13 +443,15 @@ export const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
               </tbody>
             </table>
 
-            {/* Footer Signature Box for Supervising Teacher */}
-            <div className="pt-8 flex justify-end">
-              <div className="text-center space-y-2 text-xs">
-                <div>ลงชื่อ..........................................................กรรมการผู้คุมการแข่งขัน</div>
-                <div>( {printData.teacherNames.split(',')[0]} )</div>
-                <div className="text-slate-500">วันที่............/............/............</div>
-              </div>
+            {/* Footer Signature Box for ALL Supervising Teachers */}
+            <div className="pt-8 flex flex-wrap justify-end gap-x-8 gap-y-6">
+              {printData.teacherNames.split(',').map((teacherName, tIdx) => (
+                <div key={tIdx} className="text-center space-y-1.5 text-xs font-sarabun">
+                  <div>ลงชื่อ..........................................................กรรมการผู้คุมการแข่งขัน</div>
+                  <div className="font-bold text-slate-800">( {teacherName.trim()} )</div>
+                  <div className="text-slate-500 text-[11px]">วันที่............/............/............</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
