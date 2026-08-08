@@ -26,13 +26,35 @@ a[href*="apple.com/maps"] {
   border-bottom: none !important;
 }
 
-/* Thai Font Family Classes for Certificate */
+/* Thai Font Family Classes for Certificate (All 28 Fonts) */
 .font-sarabun { font-family: 'Sarabun', sans-serif; }
 .font-prompt { font-family: 'Prompt', sans-serif; }
+.font-kanit { font-family: 'Kanit', sans-serif; }
 .font-charm { font-family: 'Charm', cursive; }
+.font-charmonman { font-family: 'Charmonman', cursive; }
 .font-chonburi { font-family: 'Chonburi', serif; }
-.font-mali { font-family: 'Mali', cursive; }
+.font-srisakdi { font-family: 'Srisakdi', cursive; }
 .font-niramit { font-family: 'Niramit', sans-serif; }
+.font-baijamjuree { font-family: 'Bai Jamjuree', sans-serif; }
+.font-chakrapetch { font-family: 'Chakra Petch', sans-serif; }
+.font-mitr { font-family: 'Mitr', sans-serif; }
+.font-taviraj { font-family: 'Taviraj', serif; }
+.font-trirong { font-family: 'Trirong', serif; }
+.font-pridi { font-family: 'Pridi', serif; }
+.font-maitree { font-family: 'Maitree', serif; }
+.font-k2d { font-family: 'K2D', sans-serif; }
+.font-athiti { font-family: 'Athiti', sans-serif; }
+.font-fahkwang { font-family: 'Fahkwang', sans-serif; }
+.font-kodchasan { font-family: 'Kodchasan', sans-serif; }
+.font-koho { font-family: 'KoHo', sans-serif; }
+.font-thasadith { font-family: 'Thasadith', sans-serif; }
+.font-krub { font-family: 'Krub', sans-serif; }
+.font-mali { font-family: 'Mali', cursive; }
+.font-sriracha { font-family: 'Sriracha', cursive; }
+.font-itim { font-family: 'Itim', cursive; }
+.font-pattaya { font-family: 'Pattaya', cursive; }
+.font-notosansthai { font-family: 'Noto Sans Thai', sans-serif; }
+.font-notoserifthai { font-family: 'Noto Serif Thai', serif; }
 
 /* Glassmorphism Light Mode Utilities */
 .glass-panel {

@@ -190,14 +190,9 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
   ];
 
   const getFontClass = (fontName?: string) => {
-    switch (fontName || certificateFont) {
-      case 'Charm': return 'font-charm';
-      case 'Chonburi': return 'font-chonburi';
-      case 'Mali': return 'font-mali';
-      case 'Niramit': return 'font-niramit';
-      case 'Prompt': return 'font-prompt';
-      default: return 'font-sarabun';
-    }
+    const target = fontName || certificateFont || 'Sarabun';
+    const cleanFont = target.toLowerCase().replace(/\s+/g, '');
+    return `font-${cleanFont}`;
   };
 
   const currentActivity = activities.find(a => a.id === selectedActivityId);
@@ -461,6 +456,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
             <div
               className={`w-full aspect-[1.414/1] bg-white relative rounded-2xl overflow-hidden shadow-inner border border-slate-200 ${getFontClass()}`}
               style={{
+                fontFamily: `"${certificateFont}", Sarabun, sans-serif`,
                 backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : 'radial-gradient(circle at 50% 50%, #ffffff 0%, #f0f9ff 100%)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'

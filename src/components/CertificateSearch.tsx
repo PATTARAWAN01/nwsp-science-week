@@ -480,6 +480,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                 ref={printRef}
                 className={`w-full max-w-[800px] aspect-[1.414/1] bg-white relative rounded-xl overflow-hidden shadow-md text-slate-900 select-none ${getFontClass(previewCert.config?.fontFamily)}`}
                 style={{
+                  fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif',
                   backgroundImage: previewCert.config?.bgImageUrl 
                     ? `url(${previewCert.config.bgImageUrl})` 
                     : 'radial-gradient(circle at 50% 50%, #ffffff 0%, #f0f9ff 100%)',
