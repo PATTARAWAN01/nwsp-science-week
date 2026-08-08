@@ -343,8 +343,11 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                       ? `ได้เข้าร่วม ${previewCert.result.activityTitle}`
                       : `ได้รับ ${previewCert.result.award} ใน ${previewCert.result.activityTitle}`}
                     <br />
-                    <span className="text-xs text-slate-600">
-                      ระดับชั้น{previewCert.result.level} เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {previewCert.result.academicYear}
+                    <span className="text-xs sm:text-sm text-slate-700 font-medium block mt-1">
+                      ระดับชั้น{previewCert.result.level}
+                    </span>
+                    <span className="text-xs text-slate-600 block">
+                      เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {previewCert.result.academicYear}
                     </span>
                   </p>
                 </div>

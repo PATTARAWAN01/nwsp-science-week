@@ -25,34 +25,38 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
   const [bgImageUrl, setBgImageUrl] = useState<string>('');
   const [certificateFont, setCertificateFont] = useState<string>('Sarabun');
 
-  // Element visibility toggles (requirement: เลือกได้ว่าจะเอาอะไรบ้าง)
+  // Element visibility toggles (requirement: เลือกเปิด/ปิด 6 รายการอิสระ)
   const [visibleElements, setVisibleElements] = useState<{
     studentName: boolean;
     award: boolean;
     activityName: boolean;
     levelText: boolean;
+    academicYearText: boolean;
     certId: boolean;
   }>({
     studentName: true,
     award: true,
     activityName: true,
     levelText: true,
+    academicYearText: true,
     certId: true
   });
 
-  // Text Positions State (IssueDate removed)
+  // Text Positions State (IssueDate removed, AcademicYearText separated)
   const [positions, setPositions] = useState<{
     studentName: TextPosition;
     award: TextPosition;
     activityName: TextPosition;
     levelText: TextPosition;
+    academicYearText: TextPosition;
     issueDate: TextPosition;
     certId: TextPosition;
   }>({
-    studentName: { x: 50, y: 45, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' },
-    award: { x: 50, y: 55, fontSize: 26, color: '#b45309', fontWeight: 'bold' },
-    activityName: { x: 50, y: 64, fontSize: 22, color: '#334155', fontWeight: 'bold' },
-    levelText: { x: 50, y: 71, fontSize: 18, color: '#475569', fontWeight: 'normal' },
+    studentName: { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' },
+    award: { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' },
+    activityName: { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' },
+    levelText: { x: 50, y: 67, fontSize: 18, color: '#475569', fontWeight: 'normal' },
+    academicYearText: { x: 50, y: 73, fontSize: 16, color: '#475569', fontWeight: 'normal' },
     issueDate: { x: 25, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' },
     certId: { x: 75, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' },
   });
@@ -234,16 +238,17 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
             </label>
             <div className="space-y-2 text-xs font-medium text-slate-700">
               {[
-                { key: 'studentName', label: 'ชื่อ - นามสกุล นักเรียน' },
-                { key: 'award', label: 'รางวัลที่ได้รับ' },
-                { key: 'activityName', label: 'ชื่อกิจกรรมการแข่งขัน' },
-                { key: 'levelText', label: 'ข้อความระดับชั้นและปีการศึกษา' },
-                { key: 'certId', label: 'รหัสเกียรติบัตร' },
+                { key: 'studentName', label: '1. ชื่อ - นามสกุล นักเรียน' },
+                { key: 'award', label: '2. รางวัลที่ได้รับ' },
+                { key: 'activityName', label: '3. ชื่อกิจกรรมการแข่งขัน' },
+                { key: 'levelText', label: '4. ข้อความระดับชั้น' },
+                { key: 'academicYearText', label: '5. ข้อความปีการศึกษา' },
+                { key: 'certId', label: '6. รหัสเกียรติบัตร' },
               ].map(el => (
                 <label key={el.key} className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-xl border border-slate-200 hover:bg-slate-50">
                   <input
                     type="checkbox"
-                    checked={visibleElements[el.key as keyof typeof visibleElements]}
+                    checked={visibleElements[el.key as keyof typeof visibleElements] ?? true}
                     onChange={(e) => setVisibleElements({ ...visibleElements, [el.key]: e.target.checked })}
                     className="w-4 h-4 text-sky-600 rounded"
                   />
@@ -303,16 +308,17 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
             {/* Element Selector */}
             <div className="grid grid-cols-2 gap-1.5 text-xs font-semibold">
               {[
-                { id: 'studentName', label: 'ชื่อ-สกุล นักเรียน' },
-                { id: 'award', label: 'รางวัลที่ได้รับ' },
-                { id: 'activityName', label: 'ชื่อกิจกรรม' },
-                { id: 'levelText', label: 'ระดับชั้น' },
-                { id: 'certId', label: 'รหัสเกียรติบัตร' },
+                { id: 'studentName', label: '1. ชื่อนักเรียน' },
+                { id: 'award', label: '2. รางวัลที่ได้รับ' },
+                { id: 'activityName', label: '3. ชื่อกิจกรรม' },
+                { id: 'levelText', label: '4. ระดับชั้น' },
+                { id: 'academicYearText', label: '5. ปีการศึกษา' },
+                { id: 'certId', label: '6. รหัสเกียรติบัตร' },
               ].map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveElementKey(item.id)}
-                  className={`px-3 py-2 rounded-xl text-left transition-all ${
+                  className={`px-2.5 py-2 rounded-xl text-left transition-all text-[11px] ${
                     activeElementKey === item.id
                       ? 'bg-sky-600 text-white font-bold shadow-sm'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -461,7 +467,22 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                     color: positions.levelText.color
                   }}
                 >
-                  ระดับชั้น{selectedLevel} ประจำปีการศึกษา {academicYear}
+                  ระดับชั้น{selectedLevel}
+                </div>
+              )}
+
+              {/* Academic Year Text */}
+              {visibleElements.academicYearText && (
+                <div
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap transition-all"
+                  style={{
+                    left: `${positions.academicYearText?.x ?? positions.levelText.x}%`,
+                    top: `${positions.academicYearText?.y ?? (positions.levelText.y + 6)}%`,
+                    fontSize: `${(positions.academicYearText?.fontSize ?? (positions.levelText.fontSize - 2)) * 0.5}px`,
+                    color: positions.academicYearText?.color ?? positions.levelText.color
+                  }}
+                >
+                  เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {academicYear}
                 </div>
               )}
 

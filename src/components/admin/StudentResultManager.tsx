@@ -373,8 +373,11 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                   ? `ได้เข้าร่วม ${batchItem.activityTitle}`
                   : `ได้รับ ${batchItem.award} ใน ${batchItem.activityTitle}`}
                 <br />
-                <span className="text-sm text-slate-600">
-                  ระดับชั้น{batchItem.level} เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {batchItem.academicYear}
+                <span className="text-sm font-semibold text-slate-800 block mt-1">
+                  ระดับชั้น{batchItem.level}
+                </span>
+                <span className="text-xs text-slate-600 block">
+                  เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {batchItem.academicYear}
                 </span>
               </p>
             </div>
