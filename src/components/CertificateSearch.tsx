@@ -95,8 +95,10 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   // Open Preview Modal
   const handleOpenPreview = (res: CompetitionResult, studentName: string) => {
     const config = certificateConfigs.find(
-      c => c.activityId === res.activityId && c.academicYear === res.academicYear
-    );
+      c => c.activityId === res.activityId && (!res.academicYear || c.academicYear === res.academicYear)
+    ) || certificateConfigs.find(
+      c => c.activityId === res.activityId
+    ) || certificateConfigs[0];
     setPreviewCert({ result: res, studentName, config });
   };
 
@@ -176,10 +178,11 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
 
     const fontFamily = config?.fontFamily || 'Sarabun';
     const cleanFontName = fontFamily.replace(/["']/g, '').trim();
+    const fontSpecifier = `'${cleanFontName}'`;
 
     const getCanvasFont = (weight: string, size: number) => {
       const w = weight === 'bold' ? '700' : (weight || '400');
-      return `${w} ${size}px ${cleanFontName}, Sarabun, sans-serif`;
+      return `${w} ${size}px ${fontSpecifier}, Sarabun, sans-serif`;
     };
 
     // Ensure selected custom font stylesheet & font binary are 100% loaded before rendering to Canvas 2D

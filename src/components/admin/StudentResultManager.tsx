@@ -302,10 +302,11 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
     const fontFamily = config?.fontFamily || 'Sarabun';
     const cleanFontName = fontFamily.replace(/["']/g, '').trim();
+    const fontSpecifier = `'${cleanFontName}'`;
 
     const getCanvasFont = (weight: string, size: number) => {
       const w = weight === 'bold' ? '700' : (weight || '400');
-      return `${w} ${size}px ${cleanFontName}, Sarabun, sans-serif`;
+      return `${w} ${size}px ${fontSpecifier}, Sarabun, sans-serif`;
     };
 
     // Ensure selected custom font stylesheet & font binary are 100% loaded before rendering to Canvas 2D
@@ -327,8 +328,8 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
       try {
         await Promise.all([
-          document.fonts.load(`700 50px ${cleanFontName}`),
-          document.fonts.load(`400 50px ${cleanFontName}`),
+          document.fonts.load(`700 50px ${fontSpecifier}`),
+          document.fonts.load(`400 50px ${fontSpecifier}`),
           document.fonts.ready
         ]);
       } catch (e) {
@@ -455,9 +456,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
       // Fetch latest saved certificate configuration for this activity
       const freshConfigs = await getCertificateConfigs();
       setAllCertConfigs(freshConfigs);
-      const activeCertConfig = freshConfigs.find(
-        c => c.activityId === selectedActivityId && c.academicYear === academicYear
-      ) || batchCertConfig;
+      const activeCertConfig = findCertConfig(freshConfigs, selectedActivityId, currentActivity?.title, academicYear) || batchCertConfig;
 
       const pdf = new jsPDF({
         orientation: 'landscape',
