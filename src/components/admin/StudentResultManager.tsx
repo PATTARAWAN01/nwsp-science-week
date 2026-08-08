@@ -441,6 +441,13 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     setBatchProgress({ current: 0, total: studentsToExport.length, name: '' });
 
     try {
+      // Fetch latest saved certificate configuration for this activity
+      const freshConfigs = await getCertificateConfigs();
+      setAllCertConfigs(freshConfigs);
+      const activeCertConfig = freshConfigs.find(
+        c => c.activityId === selectedActivityId && c.academicYear === academicYear
+      ) || batchCertConfig;
+
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -452,7 +459,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
         setBatchItem(item);
         setBatchProgress({ current: i + 1, total: studentsToExport.length, name: item.studentName });
 
-        const canvas = await generateCertificateCanvas2D(item, batchCertConfig);
+        const canvas = await generateCertificateCanvas2D(item, activeCertConfig);
         let imgData: string;
         try {
           imgData = canvas.toDataURL('image/jpeg', 0.95);

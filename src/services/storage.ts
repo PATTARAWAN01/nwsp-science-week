@@ -439,7 +439,7 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
   // 1. Local Storage
   const localList = getLocal<CertificateConfig[]>(STORAGE_KEYS.CERT_CONFIGS, []);
   localList.forEach(c => {
-    const key = `${c.activityId}-${c.level}-${c.academicYear}`;
+    const key = `${c.activityId}_${c.academicYear}`;
     configMap.set(key, c);
   });
 
@@ -450,8 +450,12 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
       querySnapshot.forEach((docSnap) => {
         const cloudConfig = docSnap.data() as CertificateConfig;
         if (cloudConfig && cloudConfig.activityId) {
-          const key = `${cloudConfig.activityId}-${cloudConfig.level}-${cloudConfig.academicYear}`;
-          configMap.set(key, cloudConfig);
+          const key = `${cloudConfig.activityId}_${cloudConfig.academicYear}`;
+          const existing = configMap.get(key);
+          // Prefer cloud config if local has no fontFamily or if cloud is newer
+          if (!existing || (cloudConfig.fontFamily && cloudConfig.fontFamily !== 'Sarabun') || docSnap.id === `${cloudConfig.activityId}_${cloudConfig.academicYear}`) {
+            configMap.set(key, cloudConfig);
+          }
         }
       });
     } catch (err) {
