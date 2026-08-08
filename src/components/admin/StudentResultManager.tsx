@@ -450,12 +450,30 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
         await new Promise(r => setTimeout(r, 20));
       }
 
-      const fileName = `เกียรติบัตรทั้งหมด_${currentAct.title}_${selectedLevel}_ปี${academicYear}.pdf`;
-      pdf.save(fileName);
+      // Sanitize filename to prevent file system errors with slashes or special characters
+      const cleanTitle = currentAct.title.replace(/[/\\?%*:|"<>]/g, '_');
+      const cleanLevel = selectedLevel.replace(/[/\\?%*:|"<>]/g, '_');
+      const fileName = `เกียรติบัตรทั้งหมด_${cleanTitle}_${cleanLevel}_ปี${academicYear}.pdf`;
+
+      try {
+        pdf.save(fileName);
+      } catch (saveErr) {
+        console.warn("pdf.save failed, using Blob URL fallback:", saveErr);
+        const blob = pdf.output('blob');
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      }
+
       alert(`ส่งออกไฟล์ PDF เกียรติบัตรสำเร็จ! รวมทั้งหมด ${studentsToExport.length} รายชื่อในไฟล์เดียวเรียบร้อยแล้ว`);
-    } catch (err) {
-      console.error("Batch PDF Export error:", err);
-      alert("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF กรุณาลองใหม่อีกครั้ง");
+    } catch (err: any) {
+      console.error("Batch PDF Export error detail:", err);
+      alert(`เกิดข้อผิดพลาดในการสร้างไฟล์ PDF: ${err?.message || 'ข้อผิดพลาดระบบ'}\nกรุณาลองใหม่อีกครั้ง หรือใช้ปุ่มพิมพ์ผ่านเบราว์เซอร์`);
     } finally {
       setIsExportingBatchPDF(false);
       setBatchItem(null);

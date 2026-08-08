@@ -263,7 +263,9 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       };
 
       const canvas = await generateCertificateCanvas2D(item, previewCert.config);
-      const fileName = `เกียรติบัตร_${previewCert.studentName}_${previewCert.result.activityTitle}`;
+      const cleanName = previewCert.studentName.replace(/[/\\?%*:|"<>]/g, '_');
+      const cleanTitle = previewCert.result.activityTitle.replace(/[/\\?%*:|"<>]/g, '_');
+      const fileName = `เกียรติบัตร_${cleanName}_${cleanTitle}`;
 
       let imgData: string;
       try {
@@ -278,7 +280,9 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
         const link = document.createElement('a');
         link.download = `${fileName}.png`;
         link.href = imgData;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
       } else {
         const pdf = new jsPDF({
           orientation: 'landscape',
@@ -287,7 +291,20 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
         });
 
         pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
-        pdf.save(`${fileName}.pdf`);
+        try {
+          pdf.save(`${fileName}.pdf`);
+        } catch (saveErr) {
+          console.warn("pdf.save failed, using Blob URL fallback:", saveErr);
+          const blob = pdf.output('blob');
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `${fileName}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        }
       }
     } catch (err) {
       console.error("Export failed:", err);
