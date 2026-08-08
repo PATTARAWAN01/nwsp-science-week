@@ -213,38 +213,46 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       }
     }
 
+    const drawTextAutoFit = (
+      text: string,
+      targetXPercent: number,
+      targetYPercent: number,
+      initialFontSize: number,
+      color: string,
+      fontWeight: string,
+      maxAvailableWidth: number = canvas.width * 0.85
+    ) => {
+      let size = Math.round(initialFontSize * 1.7);
+      ctx.font = getCanvasFont(fontWeight, size);
+      let textWidth = ctx.measureText(text).width;
+      while (textWidth > maxAvailableWidth && size > 16) {
+        size -= 2;
+        ctx.font = getCanvasFont(fontWeight, size);
+        textWidth = ctx.measureText(text).width;
+      }
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, (targetXPercent / 100) * canvas.width, (targetYPercent / 100) * canvas.height);
+    };
+
     // 1. Student Name
     if (config?.visibleElements?.studentName ?? true) {
       const pos = config?.positions?.studentName || { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' };
-      const scaledSize = Math.round(pos.fontSize * 1.7);
-      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
-      ctx.fillStyle = pos.color || '#0c4a6e';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(item.studentName, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+      drawTextAutoFit(item.studentName, pos.x || 50, pos.y || 42, pos.fontSize || 34, pos.color || '#0c4a6e', pos.fontWeight || 'bold');
     }
 
     // 2. Award Text
     if (config?.visibleElements?.award ?? true) {
       const pos = config?.positions?.award || { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' };
-      const scaledSize = Math.round(pos.fontSize * 1.7);
-      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
-      ctx.fillStyle = pos.color || '#b45309';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(getFullAwardText(item.award), (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+      drawTextAutoFit(getFullAwardText(item.award), pos.x || 50, pos.y || 52, pos.fontSize || 26, pos.color || '#b45309', pos.fontWeight || 'bold');
     }
 
     // 3. Activity Name & Level
     if (config?.visibleElements?.activityName ?? true) {
       const pos = config?.positions?.activityName || { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' };
-      const scaledSize = Math.round(pos.fontSize * 1.7);
       const levelStr = item.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย';
-      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
-      ctx.fillStyle = pos.color || '#334155';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${item.activityTitle} ${levelStr}`, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+      drawTextAutoFit(`${item.activityTitle} ${levelStr}`, pos.x || 50, pos.y || 60, pos.fontSize || 22, pos.color || '#334155', pos.fontWeight || 'bold');
     }
 
     // 4. Certificate ID
@@ -332,177 +340,165 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
           setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
         }
       }
-    } catch (err) {
-      console.error("Export failed:", err);
-      alert("เกิดข้อผิดพลาดในการดาวน์โหลดเอกสาร");
+    } catch (err: any) {
+      console.error("Single Certificate Export error detail:", err);
+      alert(`เกิดข้อผิดพลาดในการสร้างเกียรติบัตร: ${err?.message || 'ข้อผิดพลาดระบบ'}`);
     } finally {
       setDownloadingFormat(null);
     }
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn">
       
-      {/* Header Banner */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/80 shadow-md">
-        <div className="max-w-3xl mx-auto text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold">
-            <Award className="w-4 h-4 text-purple-600" />
-            ระบบออกเกียรติบัตรออนไลน์ (E-Certificate)
-          </div>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-800 tracking-tight">
-            ค้นหาและดาวน์โหลดเกียรติบัตร
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600">
-            พิมพ์ชื่อ นามสกุล หรือรหัสนักเรียน เพื่อดูตัวอย่างและดาวน์โหลดเกียรติบัตร (PDF หรือ PNG)
-          </p>
-
-          {/* Academic Year Selector & Search Box */}
-          <div className="pt-2 max-w-xl mx-auto space-y-3">
-            
-            {/* Requirement: Select Academic Year First */}
-            <div className="flex items-center justify-center gap-2">
-              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-purple-600" />
-                เลือกปีการศึกษา:
-              </label>
-              <select
-                value={selectedSearchYear}
-                onChange={(e) => setSelectedSearchYear(e.target.value)}
-                className="glass-input px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-purple-900 border-purple-300"
-              >
-                {yearOptions.map(y => (
-                  <option key={y} value={y}>ปีการศึกษา {y}</option>
-                ))}
-              </select>
+      {/* Search Header Banner */}
+      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/80 shadow-xl space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+          <div className="space-y-1">
+            <div className="text-xs font-bold text-sky-700 bg-sky-100 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-1">
+              <Sparkles className="w-3.5 h-3.5" />
+              ระบบสืบค้น & ดาวน์โหลดเกียรติบัตรฉบับจริง
             </div>
-
-            {/* Search Input Box */}
-            <div className="relative glass-panel rounded-2xl p-2 flex items-center gap-2 border border-purple-200 shadow-xl shadow-purple-500/10">
-              <Search className="w-5 h-5 text-purple-500 ml-3 shrink-0" />
-              <input
-                type="text"
-                placeholder="พิมพ์ชื่อ หรือ นามสกุล เช่น สมชาย, รุ่งเรือง, 12345..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-transparent border-0 focus:outline-none text-slate-800 text-sm sm:text-base placeholder:text-slate-400 py-2 font-medium"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="text-xs px-3 py-1.5 rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300 font-bold"
-                >
-                  ล้างคำค้น
-                </button>
-              )}
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* Search Results Grid */}
-      {!searchTerm.trim() ? (
-        <div className="glass-panel p-12 text-center rounded-3xl space-y-3 max-w-2xl mx-auto">
-          <Search className="w-12 h-12 text-purple-300 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-700">พิมพ์ชื่อหรือนามสกุลเพื่อค้นหาเกียรติบัตร (ปีการศึกษา {selectedSearchYear})</h3>
-          <p className="text-xs text-slate-500">
-            ระบบจะแสดงรายการเกียรติบัตรที่ได้รับ สามารถกดดูตัวอย่าง Preview และเลือกดาวน์โหลดเป็น PDF หรือ PNG ได้ทันที
-          </p>
-        </div>
-      ) : matchingCertificates.length === 0 ? (
-        <div className="glass-panel p-12 text-center rounded-3xl space-y-3 max-w-2xl mx-auto">
-          <FileText className="w-12 h-12 text-slate-300 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-700">ไม่พบเกียรติบัตรสำหรับคำค้นหา "{searchTerm}" ในปีการศึกษา {selectedSearchYear}</h3>
-          <p className="text-xs text-slate-500">
-            ลองสลับปีการศึกษา หรือตรวจสอบการสะกดชื่อ-นามสกุลอีกครั้ง
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider px-2">
-            พบเกียรติบัตรทั้งหมด {matchingCertificates.length} รายการ (ปีการศึกษา {selectedSearchYear})
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              ค้นหาเกียรติบัตรออนไลน์ (Online Certificate Search)
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600">
+              พิมพ์ชื่อ หรือนามสกุล หรือเลขประจำตัวนักเรียน เพื่อค้นหาและดาวน์โหลดใบเกียรติบัตรฉบับจริง
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {matchingCertificates.map((item, idx) => {
-              const itemKey = `${item.result.id}-${item.studentId}-${idx}`;
-
-              return (
-                <div key={itemKey} className="glass-card rounded-3xl p-6 border border-white/80 flex flex-col justify-between space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
-                        {item.result.level}
-                      </span>
-                      <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">
-                        {item.result.award}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 className="font-extrabold text-lg text-slate-900">{item.studentName}</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        ชั้น {item.studentGrade}/{item.studentRoom} • รหัสนักเรียน {item.studentId}
-                      </p>
-                    </div>
-
-                    <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/60 text-xs space-y-1 text-slate-700">
-                      <div><strong>กิจกรรม:</strong> {item.result.activityTitle}</div>
-                      {item.result.teamName && (
-                        <div><strong>ทีม:</strong> {item.result.teamName}</div>
-                      )}
-                      <div><strong>ปีการศึกษา:</strong> {item.result.academicYear}</div>
-                      {item.result.certificateId && (
-                        <div className="font-mono text-purple-700 font-bold"><strong>รหัสเกียรติบัตร:</strong> {item.result.certificateId}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleOpenPreview(item.result, item.studentName)}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 text-white font-bold rounded-2xl shadow-md shadow-purple-500/20 hover:shadow-purple-500/35 transition-all flex items-center justify-center gap-2 text-sm"
-                  >
-                    <Eye className="w-4 h-4" />
-                    ดูตัวอย่างเกียรติบัตร & เลือกดาวน์โหลด (Preview)
-                  </button>
-                </div>
-              );
-            })}
+          {/* Academic Year Selector */}
+          <div className="flex items-center gap-2 bg-slate-100/80 p-2 rounded-2xl border border-slate-200 self-start md:self-auto">
+            <Calendar className="w-4 h-4 text-slate-500 ml-2" />
+            <span className="text-xs font-bold text-slate-700">ปีการศึกษา:</span>
+            <select
+              value={selectedSearchYear}
+              onChange={(e) => setSelectedSearchYear(e.target.value)}
+              className="bg-white text-sky-900 font-extrabold text-xs px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm cursor-pointer"
+            >
+              {yearOptions.map(y => (
+                <option key={y} value={y}>ปีการศึกษา {y}</option>
+              ))}
+            </select>
           </div>
         </div>
-      )}
 
-      {/* Large Glassmorphic Preview Modal */}
-      {previewCert && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn overflow-y-auto">
-          <div className="bg-white/95 rounded-3xl max-w-4xl w-full p-5 sm:p-7 shadow-2xl border border-white/80 space-y-5 relative my-auto">
-            
+        {/* Search Input Field */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+            <Search className="w-5 h-5" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="พิมพ์ ชื่อ หรือ นามสกุล หรือ เลขประจำตัวนักเรียน..."
+            className="w-full pl-12 pr-4 py-3.5 glass-input rounded-2xl text-sm sm:text-base font-bold text-slate-800 placeholder-slate-400 border-slate-300 shadow-inner focus:ring-2 focus:ring-sky-500"
+          />
+          {searchTerm && (
             <button
-              onClick={() => setPreviewCert(null)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors z-20"
+              onClick={() => setSearchTerm('')}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600"
             >
               <X className="w-5 h-5" />
             </button>
+          )}
+        </div>
+      </div>
 
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold mb-1">
-                <Sparkles className="w-3.5 h-3.5" />
-                ตัวอย่างเกียรติบัตรออนไลน์ (E-Certificate Preview)
+      {/* Results List Grid */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+            <Award className="w-4 h-4 text-sky-600" />
+            รายการเกียรติบัตรที่ค้นพบ
+            {searchClean.length >= 2 && (
+              <span className="bg-sky-100 text-sky-800 text-xs px-2 py-0.5 rounded-full font-extrabold">
+                {matchingCertificates.length} รายการ
+              </span>
+            )}
+          </h3>
+        </div>
+
+        {searchClean.length < 2 ? (
+          <div className="glass-panel p-8 text-center rounded-3xl border border-dashed border-slate-300 text-slate-500 space-y-2">
+            <Search className="w-10 h-10 mx-auto text-slate-300 animate-pulse" />
+            <p className="text-sm font-bold">กรุณาพิมพ์ชื่อ นามสกุล หรือรหัสนักเรียนอย่างน้อย 2 ตัวอักษรเพื่อค้นหา</p>
+          </div>
+        ) : matchingCertificates.length === 0 ? (
+          <div className="glass-panel p-8 text-center rounded-3xl border border-rose-200 bg-rose-50/30 text-rose-700 space-y-2">
+            <FileText className="w-10 h-10 mx-auto text-rose-400" />
+            <p className="text-sm font-bold">ไม่พบรายชื่อเกียรติบัตรตามคีย์เวิร์ด "{searchTerm}" ในปีการศึกษา {selectedSearchYear}</p>
+            <p className="text-xs text-slate-500">กรุณาตรวจสอบการสะกดชื่อ-นามสกุล หรือลองเปลี่ยนปีการศึกษาที่มุมขวาบน</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {matchingCertificates.map((cert, idx) => (
+              <div 
+                key={`${cert.result.id}-${cert.studentId}-${idx}`}
+                className="glass-card p-5 rounded-2xl border border-white/80 shadow-md hover:shadow-lg transition-all space-y-3 flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-100">
+                      {cert.result.activityTitle} ({cert.result.level})
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                      {cert.result.certificateId || 'เลขที่เกียรติบัตรระบบ'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-base font-extrabold text-slate-900">
+                      {cert.studentName}
+                    </h4>
+                    <p className="text-xs text-slate-500 font-medium">
+                      ชั้นมัธยมศึกษาปีที่ {cert.studentGrade}/{cert.studentRoom} • รหัสนักเรียน {cert.studentId}
+                    </p>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200">
+                    <Award className="w-3.5 h-3.5 text-amber-600" />
+                    {getFullAwardText(cert.result.award)}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenPreview(cert.result, cert.studentName)}
+                    className="flex-1 py-2 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> พรีวิว & ดาวน์โหลด
+                  </button>
+                </div>
               </div>
-              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                {previewCert.studentName}
-              </h3>
-              <p className="text-xs text-slate-500">
-                {previewCert.result.activityTitle} ({previewCert.result.level})
-              </p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Interactive Preview & Download Modal */}
+      {previewCert && (
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-fadeIn overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-6 text-center space-y-4 shadow-2xl border border-white/80 my-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-sky-800 font-extrabold text-sm sm:text-base">
+                <Sparkles className="w-5 h-5 text-sky-600" />
+                ตัวอย่างใบเกียรติบัตรออนไลน์ (Preview Certificate)
+              </div>
+              <button
+                onClick={() => setPreviewCert(null)}
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Live Render Container with Saved Certificate Configuration */}
+            {/* Live Render Container with Container Queries cqw responsive text scaling */}
             <div className="glass-panel p-2.5 rounded-2xl border border-slate-200 shadow-lg overflow-hidden flex justify-center bg-slate-100">
               <div
                 ref={printRef}
-                className={`w-full max-w-[800px] aspect-[1.414/1] bg-white relative rounded-xl overflow-hidden shadow-md text-slate-900 select-none ${getFontClass(previewCert.config?.fontFamily)}`}
+                className={`w-full max-w-[800px] aspect-[1.414/1] bg-white relative rounded-xl overflow-hidden shadow-md text-slate-900 select-none [container-type:inline-size] ${getFontClass(previewCert.config?.fontFamily)}`}
                 style={{
                   fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif',
                   backgroundImage: previewCert.config?.bgImageUrl 
@@ -516,23 +512,6 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                   <div className="absolute inset-3 border-2 border-dashed border-sky-300 rounded-xl pointer-events-none" />
                 )}
 
-                {/* Default Header Logo if no custom background */}
-                {!previewCert.config?.bgImageUrl && (
-                  <div className="text-center pt-4 space-y-1 relative z-10">
-                    <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-purple-600 rounded-xl mx-auto p-0.5 shadow-sm">
-                      <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center text-sky-600 font-extrabold text-sm">
-                        NWSP
-                      </div>
-                    </div>
-                    <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-wide font-sans">
-                      โรงเรียนหนองวัวซอพิทยาคม
-                    </h1>
-                    <p className="text-xs font-medium text-slate-600">
-                      ขอมอบเกียรติบัตรฉบับนี้เพื่อแสดงว่า
-                    </p>
-                  </div>
-                )}
-
                 {/* Configured Student Name */}
                 {(previewCert.config?.visibleElements?.studentName ?? true) && (
                   <div
@@ -540,12 +519,12 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                     style={previewCert.config?.positions?.studentName ? {
                       left: `${previewCert.config.positions.studentName.x}%`,
                       top: `${previewCert.config.positions.studentName.y}%`,
-                      fontSize: `${previewCert.config.positions.studentName.fontSize * 0.5}px`,
+                      fontSize: `${(previewCert.config.positions.studentName.fontSize / 800) * 100}cqw`,
                       color: previewCert.config.positions.studentName.color
                     } : {
                       left: '50%',
                       top: '42%',
-                      fontSize: '18px',
+                      fontSize: '4.25cqw',
                       color: '#0c4a6e'
                     }}
                   >
@@ -560,12 +539,12 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                     style={previewCert.config?.positions?.award ? {
                       left: `${previewCert.config.positions.award.x}%`,
                       top: `${previewCert.config.positions.award.y}%`,
-                      fontSize: `${previewCert.config.positions.award.fontSize * 0.5}px`,
+                      fontSize: `${(previewCert.config.positions.award.fontSize / 800) * 100}cqw`,
                       color: previewCert.config.positions.award.color
                     } : {
                       left: '50%',
                       top: '52%',
-                      fontSize: '14px',
+                      fontSize: '3.25cqw',
                       color: '#b45309'
                     }}
                   >
@@ -580,12 +559,12 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                     style={previewCert.config?.positions?.activityName ? {
                       left: `${previewCert.config.positions.activityName.x}%`,
                       top: `${previewCert.config.positions.activityName.y}%`,
-                      fontSize: `${previewCert.config.positions.activityName.fontSize * 0.5}px`,
+                      fontSize: `${(previewCert.config.positions.activityName.fontSize / 800) * 100}cqw`,
                       color: previewCert.config.positions.activityName.color
                     } : {
                       left: '50%',
                       top: '60%',
-                      fontSize: '12px',
+                      fontSize: '2.75cqw',
                       color: '#334155'
                     }}
                   >
@@ -600,26 +579,16 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                     style={previewCert.config?.positions?.certId ? {
                       left: `${previewCert.config.positions.certId.x}%`,
                       top: `${previewCert.config.positions.certId.y}%`,
-                      fontSize: `${previewCert.config.positions.certId.fontSize * 0.5}px`,
+                      fontSize: `${(previewCert.config.positions.certId.fontSize / 800) * 100}cqw`,
                       color: previewCert.config.positions.certId.color
                     } : {
                       left: '75%',
                       top: '88%',
-                      fontSize: '9px',
+                      fontSize: '1.75cqw',
                       color: '#64748b'
                     }}
                   >
                     {previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`}
-                  </div>
-                )}
-
-                {/* Default Footer Signatures if no custom background */}
-                {!previewCert.config?.bgImageUrl && (
-                  <div className="absolute bottom-4 right-8 text-center space-y-0.5 text-[10px] text-slate-600">
-                    <div className="w-32 border-b border-slate-400 mx-auto pb-0.5 font-serif text-slate-700 italic">
-                      (นายณัฐกิจ คำภูธร)
-                    </div>
-                    <div className="font-semibold text-slate-800">ประธานกลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี</div>
                   </div>
                 )}
 

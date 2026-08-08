@@ -352,38 +352,46 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
       }
     }
 
+    const drawTextAutoFit = (
+      text: string,
+      targetXPercent: number,
+      targetYPercent: number,
+      initialFontSize: number,
+      color: string,
+      fontWeight: string,
+      maxAvailableWidth: number = canvas.width * 0.85
+    ) => {
+      let size = Math.round(initialFontSize * 1.7);
+      ctx.font = getCanvasFont(fontWeight, size);
+      let textWidth = ctx.measureText(text).width;
+      while (textWidth > maxAvailableWidth && size > 16) {
+        size -= 2;
+        ctx.font = getCanvasFont(fontWeight, size);
+        textWidth = ctx.measureText(text).width;
+      }
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, (targetXPercent / 100) * canvas.width, (targetYPercent / 100) * canvas.height);
+    };
+
     // 1. Student Name
     if (config?.visibleElements?.studentName ?? true) {
       const pos = config?.positions?.studentName || { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' };
-      const scaledSize = Math.round(pos.fontSize * 1.7);
-      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
-      ctx.fillStyle = pos.color || '#0c4a6e';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(item.studentName, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+      drawTextAutoFit(item.studentName, pos.x || 50, pos.y || 42, pos.fontSize || 34, pos.color || '#0c4a6e', pos.fontWeight || 'bold');
     }
 
     // 2. Award Text
     if (config?.visibleElements?.award ?? true) {
       const pos = config?.positions?.award || { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' };
-      const scaledSize = Math.round(pos.fontSize * 1.7);
-      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
-      ctx.fillStyle = pos.color || '#b45309';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(getFullAwardText(item.award), (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+      drawTextAutoFit(getFullAwardText(item.award), pos.x || 50, pos.y || 52, pos.fontSize || 26, pos.color || '#b45309', pos.fontWeight || 'bold');
     }
 
     // 3. Activity Name & Level
     if (config?.visibleElements?.activityName ?? true) {
       const pos = config?.positions?.activityName || { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' };
-      const scaledSize = Math.round(pos.fontSize * 1.7);
       const levelStr = item.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย';
-      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
-      ctx.fillStyle = pos.color || '#334155';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${item.activityTitle} ${levelStr}`, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+      drawTextAutoFit(`${item.activityTitle} ${levelStr}`, pos.x || 50, pos.y || 60, pos.fontSize || 22, pos.color || '#334155', pos.fontWeight || 'bold');
     }
 
     // 4. Certificate ID
