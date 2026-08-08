@@ -240,10 +240,9 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
               {[
                 { key: 'studentName', label: '1. ชื่อ - นามสกุล นักเรียน' },
                 { key: 'award', label: '2. รางวัลที่ได้รับ' },
-                { key: 'activityName', label: '3. ชื่อกิจกรรมการแข่งขัน' },
-                { key: 'levelText', label: '4. ข้อความระดับชั้น' },
-                { key: 'academicYearText', label: '5. ข้อความปีการศึกษา' },
-                { key: 'certId', label: '6. รหัสเกียรติบัตร' },
+                { key: 'activityName', label: '3. ชื่อกิจกรรม และระดับชั้น (อยู่บรรทัดเดียวกัน)' },
+                { key: 'academicYearText', label: '4. ข้อความปีการศึกษา' },
+                { key: 'certId', label: '5. รหัสเกียรติบัตร' },
               ].map(el => (
                 <label key={el.key} className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-xl border border-slate-200 hover:bg-slate-50">
                   <input
@@ -310,10 +309,9 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
               {[
                 { id: 'studentName', label: '1. ชื่อนักเรียน' },
                 { id: 'award', label: '2. รางวัลที่ได้รับ' },
-                { id: 'activityName', label: '3. ชื่อกิจกรรม' },
-                { id: 'levelText', label: '4. ระดับชั้น' },
-                { id: 'academicYearText', label: '5. ปีการศึกษา' },
-                { id: 'certId', label: '6. รหัสเกียรติบัตร' },
+                { id: 'activityName', label: '3. กิจกรรม & ระดับชั้น' },
+                { id: 'academicYearText', label: '4. ปีการศึกษา' },
+                { id: 'certId', label: '5. รหัสเกียรติบัตร' },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -441,7 +439,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                 </div>
               )}
 
-              {/* Activity Name */}
+              {/* Activity Name & Level (Combined on same line as requested) */}
               {visibleElements.activityName && (
                 <div
                   className="absolute transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap transition-all"
@@ -452,22 +450,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                     color: positions.activityName.color
                   }}
                 >
-                  {currentActivity?.title || 'การแข่งขันตอบปัญหาวิทยาศาสตร์'}
-                </div>
-              )}
-
-              {/* Level Text */}
-              {visibleElements.levelText && (
-                <div
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap transition-all"
-                  style={{
-                    left: `${positions.levelText.x}%`,
-                    top: `${positions.levelText.y}%`,
-                    fontSize: `${positions.levelText.fontSize * 0.5}px`,
-                    color: positions.levelText.color
-                  }}
-                >
-                  ระดับชั้น{selectedLevel}
+                  {currentActivity?.title || 'การแข่งขันตอบปัญหาวิทยาศาสตร์'} ระดับชั้น{selectedLevel}
                 </div>
               )}
 
@@ -476,10 +459,10 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                 <div
                   className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap transition-all"
                   style={{
-                    left: `${positions.academicYearText?.x ?? positions.levelText.x}%`,
-                    top: `${positions.academicYearText?.y ?? (positions.levelText.y + 6)}%`,
-                    fontSize: `${(positions.academicYearText?.fontSize ?? (positions.levelText.fontSize - 2)) * 0.5}px`,
-                    color: positions.academicYearText?.color ?? positions.levelText.color
+                    left: `${positions.academicYearText?.x ?? positions.activityName.x}%`,
+                    top: `${positions.academicYearText?.y ?? (positions.activityName.y + 7)}%`,
+                    fontSize: `${(positions.academicYearText?.fontSize ?? (positions.activityName.fontSize - 4)) * 0.5}px`,
+                    color: positions.academicYearText?.color ?? positions.activityName.color
                   }}
                 >
                   เนื่องในงานสัปดาห์วิทยาศาสตร์ ประจำปีการศึกษา {academicYear}
