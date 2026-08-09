@@ -262,7 +262,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       ctx.textBaseline = 'middle';
       const rawId = item.certificateId || '';
       const displayCertId = rawId.startsWith('เลขที่') ? rawId : `เลขที่ ${rawId}`;
-      const posX = pos.x > 92 ? 88 : (pos.x || 80);
+      const posX = Math.min(84, pos.x || 80);
       ctx.fillText(displayCertId, (posX / 100) * canvas.width, (pos.y / 100) * canvas.height);
     }
 
@@ -300,24 +300,16 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       const cleanTitle = previewCert.result.activityTitle.replace(/[/\\?%*:|"<>]/g, '_');
       const fileName = `เกียรติบัตร_${cleanName}_${cleanTitle}`;
 
+      // Always generate 1600x1131 Super HD Canvas 2D for 100% Sharp Background & Exact Center Alignment
+      const canvas = await generateCertificateCanvas2D(item, previewCert.config);
+
       let imgData: string;
-      if (printRef.current) {
-        try {
-          const domCanvas = await html2canvas(printRef.current, {
-            scale: 3,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff'
-          });
-          imgData = domCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
-        } catch (e) {
-          console.warn("html2canvas capture warning, fallback to 2D canvas:", e);
-          const fallbackCanvas = await generateCertificateCanvas2D(item, previewCert.config);
-          imgData = fallbackCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
-        }
-      } else {
-        const canvas = await generateCertificateCanvas2D(item, previewCert.config);
+      try {
         imgData = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+      } catch (e) {
+        console.warn("Canvas export tainted, generating clean fallback canvas:", e);
+        const fallbackCanvas = await generateCertificateCanvas2D(item, { ...previewCert.config, bgImageUrl: undefined });
+        imgData = fallbackCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
       }
 
       if (format === 'png') {
@@ -345,6 +337,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
         link.click();
         document.body.removeChild(link);
       } else {
+        // PDF Export
         const pdf = new jsPDF({
           orientation: 'landscape',
           unit: 'mm',
