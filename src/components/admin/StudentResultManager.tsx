@@ -374,20 +374,20 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     // 1. Student Name
     if (config?.visibleElements?.studentName ?? true) {
       const pos = config?.positions?.studentName || { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' };
-      drawTextAutoFit(item.studentName, pos.x || 50, pos.y || 42, pos.fontSize || 34, pos.color || '#0c4a6e', pos.fontWeight || 'bold');
+      drawTextAutoFit(item.studentName, 50, pos.y || 42, pos.fontSize || 34, pos.color || '#0c4a6e', pos.fontWeight || 'bold');
     }
 
     // 2. Award Text
     if (config?.visibleElements?.award ?? true) {
       const pos = config?.positions?.award || { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' };
-      drawTextAutoFit(getFullAwardText(item.award), pos.x || 50, pos.y || 52, pos.fontSize || 26, pos.color || '#b45309', pos.fontWeight || 'bold');
+      drawTextAutoFit(getFullAwardText(item.award), 50, pos.y || 52, pos.fontSize || 26, pos.color || '#b45309', pos.fontWeight || 'bold');
     }
 
     // 3. Activity Name & Level
     if (config?.visibleElements?.activityName ?? true) {
       const pos = config?.positions?.activityName || { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' };
       const levelStr = item.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย';
-      drawTextAutoFit(`${item.activityTitle} ${levelStr}`, pos.x || 50, pos.y || 60, pos.fontSize || 22, pos.color || '#334155', pos.fontWeight || 'bold');
+      drawTextAutoFit(`${item.activityTitle} ${levelStr}`, 50, pos.y || 60, pos.fontSize || 22, pos.color || '#334155', pos.fontWeight || 'bold');
     }
 
     // 4. Certificate ID

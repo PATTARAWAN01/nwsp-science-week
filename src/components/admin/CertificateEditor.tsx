@@ -166,6 +166,15 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
   const handleSaveConfig = async () => {
     if (!selectedActivityId) return;
 
+    const sanitizedPositions = {
+      ...positions,
+      studentName: positions.studentName ? { ...positions.studentName, x: 50 } : { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' },
+      award: positions.award ? { ...positions.award, x: 50 } : { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' },
+      activityName: positions.activityName ? { ...positions.activityName, x: 50 } : { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' },
+      levelText: positions.levelText ? { ...positions.levelText, x: 50 } : { x: 50, y: 67, fontSize: 18, color: '#475569', fontWeight: 'normal' },
+      academicYearText: positions.academicYearText ? { ...positions.academicYearText, x: 50 } : { x: 50, y: 73, fontSize: 16, color: '#475569', fontWeight: 'normal' }
+    };
+
     const config: CertificateConfig = {
       id: `cert-config-${academicYear}-${selectedActivityId}`,
       academicYear,
@@ -173,7 +182,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
       level: selectedLevel,
       bgImageUrl,
       fontFamily: certificateFont,
-      positions
+      positions: sanitizedPositions
     };
 
     await saveCertificateConfig(config);
