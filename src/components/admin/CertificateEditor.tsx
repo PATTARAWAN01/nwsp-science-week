@@ -22,7 +22,9 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
   academicYear,
   onRefresh
 }) => {
-  const [selectedActivityId, setSelectedActivityId] = useState<string>('');
+  const [selectedActivityId, setSelectedActivityId] = useState<string>(() => {
+    return sessionStorage.getItem('nwsp_selected_cert_activity') || '';
+  });
   const [selectedLevel, setSelectedLevel] = useState<LevelCategory>('ม.ต้น');
   const [bgImageUrl, setBgImageUrl] = useState<string>('');
   const [certificateFont, setCertificateFont] = useState<string>('Sarabun');
@@ -65,17 +67,31 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
 
   const [activeElementKey, setActiveElementKey] = useState<string>('studentName');
 
+  const handleSelectActivity = (id: string) => {
+    setSelectedActivityId(id);
+    sessionStorage.setItem('nwsp_selected_cert_activity', id);
+  };
+
   useEffect(() => {
-    if (activities.length > 0 && !selectedActivityId) {
-      setSelectedActivityId(activities[0].id);
+    if (activities.length > 0) {
+      const savedId = sessionStorage.getItem('nwsp_selected_cert_activity');
+      if (savedId && activities.some(a => a.id === savedId)) {
+        if (selectedActivityId !== savedId) {
+          setSelectedActivityId(savedId);
+        }
+      } else if (!selectedActivityId) {
+        handleSelectActivity(activities[0].id);
+      }
     }
   }, [activities]);
 
   useEffect(() => {
     let isMounted = true;
     const loadConfig = async () => {
+      if (!selectedActivityId) return;
       const allConfigs = await getCertificateConfigs();
       if (!isMounted) return;
+      
       const match = allConfigs.find(
         c => c && c.activityId === selectedActivityId && (!academicYear || c.academicYear === academicYear)
       ) || allConfigs.find(
@@ -93,11 +109,11 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
         setCertificateFont('Sarabun');
       }
     };
-    if (selectedActivityId) {
-      loadConfig();
-    }
+
+    loadConfig();
     return () => { isMounted = false; };
   }, [selectedActivityId, academicYear]);
+
   useEffect(() => {
     if (certificateFont) {
       ensureFontLoaded(certificateFont);
@@ -255,7 +271,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
           <label className="block text-xs font-bold text-slate-700 mb-1">2. เลือกกิจกรรมการแข่งขัน:</label>
           <select
             value={selectedActivityId}
-            onChange={(e) => setSelectedActivityId(e.target.value)}
+            onChange={(e) => handleSelectActivity(e.target.value)}
             className="w-full glass-input px-3.5 py-2 rounded-xl text-sm font-semibold border-slate-300"
           >
             {activities.map(act => (

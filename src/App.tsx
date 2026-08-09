@@ -29,6 +29,50 @@ import {
 import { Activity, Registration, CompetitionResult, CertificateConfig } from './types';
 import { Trophy, Users, Award, Lock, LogOut } from 'lucide-react';
 
+class SafeErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("SafeErrorBoundary caught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="glass-panel p-8 text-center rounded-3xl border border-sky-200 bg-sky-50/50 space-y-4 my-6">
+          <div className="w-12 h-12 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center mx-auto font-bold text-xl">
+            🎓
+          </div>
+          <h3 className="text-lg font-bold text-slate-800">ระบบสืบค้นและดาวน์โหลดเกียรติบัตรออนไลน์</h3>
+          <p className="text-xs text-slate-600 max-w-md mx-auto">
+            กำลังเตรียมความพร้อมข้อมูลเกียรติบัตรออนไลน์สำหรับปีการศึกษา
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.reload();
+            }}
+            className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors inline-flex items-center gap-2"
+          >
+            🔄 รีเฟรชโหลดข้อมูลใหม่
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function App() {
   const [activeTab, setActiveTab] = useState('activities');
   const [adminSubTab, setAdminSubTab] = useState('activities');
@@ -191,12 +235,14 @@ export function App() {
 
         {/* PUBLIC TAB 4: Certificates Search & Download (ดาวน์โหลดเกียรติบัตร) */}
         {activeTab === 'certificates' && (
-          <CertificateSearch
-            results={results}
-            activities={activities}
-            certificateConfigs={certConfigs}
-            academicYear={academicYear}
-          />
+          <SafeErrorBoundary>
+            <CertificateSearch
+              results={results || []}
+              activities={activities || []}
+              certificateConfigs={certConfigs || []}
+              academicYear={academicYear || '2569'}
+            />
+          </SafeErrorBoundary>
         )}
 
         {/* ADMIN PORTAL TAB */}
