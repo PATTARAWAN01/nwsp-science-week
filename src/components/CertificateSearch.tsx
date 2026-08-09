@@ -252,11 +252,11 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       drawTextAutoFit(`${item.activityTitle} ${levelStr}`, 50, pos.y || 60, pos.fontSize || 22, pos.color || '#334155', pos.fontWeight || 'bold');
     }
 
-    // 4. Certificate ID (Crisp, High-Resolution Bold Font)
+    // 4. Certificate ID (Crisp, High-Resolution Custom Font)
     if (config?.visibleElements?.certId ?? true) {
       const pos = config?.positions?.certId || { x: 80, y: 88, fontSize: 16, color: '#475569', fontWeight: 'bold' };
       const scaledSize = Math.max(30, Math.round((pos.fontSize || 16) * 2.2));
-      ctx.font = `700 ${scaledSize}px Sarabun, sans-serif`;
+      ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
       ctx.fillStyle = pos.color || '#475569';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
@@ -296,18 +296,28 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
         academicYear: previewCert.result.academicYear
       };
 
-      const canvas = await generateCertificateCanvas2D(item, previewCert.config);
       const cleanName = previewCert.studentName.replace(/[/\\?%*:|"<>]/g, '_');
       const cleanTitle = previewCert.result.activityTitle.replace(/[/\\?%*:|"<>]/g, '_');
       const fileName = `เกียรติบัตร_${cleanName}_${cleanTitle}`;
 
       let imgData: string;
-      try {
+      if (printRef.current) {
+        try {
+          const domCanvas = await html2canvas(printRef.current, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+          });
+          imgData = domCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+        } catch (e) {
+          console.warn("html2canvas capture warning, fallback to 2D canvas:", e);
+          const fallbackCanvas = await generateCertificateCanvas2D(item, previewCert.config);
+          imgData = fallbackCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+        }
+      } else {
+        const canvas = await generateCertificateCanvas2D(item, previewCert.config);
         imgData = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
-      } catch (e) {
-        console.warn("Canvas export tainted, generating clean fallback canvas:", e);
-        const fallbackCanvas = await generateCertificateCanvas2D(item, { ...previewCert.config, bgImageUrl: undefined });
-        imgData = fallbackCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
       }
 
       if (format === 'png') {
@@ -592,17 +602,19 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                 {/* Configured Certificate ID */}
                 {(previewCert.config?.visibleElements?.certId ?? true) && (
                   <div
-                    className="absolute transform -translate-x-1/2 -translate-y-1/2 font-mono whitespace-nowrap"
+                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ${getFontClass(previewCert.config?.fontFamily)}`}
                     style={previewCert.config?.positions?.certId ? {
                       left: `${previewCert.config.positions.certId.x}%`,
                       top: `${previewCert.config.positions.certId.y}%`,
                       fontSize: `${(previewCert.config.positions.certId.fontSize / 800) * 100}cqw`,
-                      color: previewCert.config.positions.certId.color
+                      color: previewCert.config.positions.certId.color,
+                      fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif'
                     } : {
                       left: '75%',
                       top: '88%',
                       fontSize: '1.75cqw',
-                      color: '#64748b'
+                      color: '#64748b',
+                      fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif'
                     }}
                   >
                     {previewCert.studentCertId ? (previewCert.studentCertId.startsWith('เลขที่') ? previewCert.studentCertId : `เลขที่ ${previewCert.studentCertId}`) : (previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`)}
