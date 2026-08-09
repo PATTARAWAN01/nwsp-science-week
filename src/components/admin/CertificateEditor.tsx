@@ -76,7 +76,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
     const loadConfig = async () => {
       const allConfigs = await getCertificateConfigs();
       if (!isMounted) return;
-      const match = allConfigs.find(
+      let match = allConfigs.find(
         c => c && c.activityId === selectedActivityId && (!academicYear || c.academicYear === academicYear)
       ) || allConfigs.find(
         c => c && c.activityId === selectedActivityId
@@ -84,13 +84,22 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
         c => c && (c.activityId === 'default' || c.id?.startsWith('default_')) && (!academicYear || c.academicYear === academicYear)
       ) || allConfigs[0];
 
+      // If matched config has Sarabun, check if a custom font was saved elsewhere in configs
+      if (match && match.fontFamily === 'Sarabun') {
+        const customFontConfig = allConfigs.find(c => c && c.fontFamily && c.fontFamily !== 'Sarabun');
+        if (customFontConfig) {
+          match = { ...match, fontFamily: customFontConfig.fontFamily };
+        }
+      }
+
       if (match) {
         if (match.bgImageUrl !== undefined) setBgImageUrl(match.bgImageUrl);
         if (match.fontFamily) setCertificateFont(match.fontFamily);
         if (match.positions) setPositions(match.positions);
       } else {
         setBgImageUrl('');
-        setCertificateFont('Sarabun');
+        const customFontConfig = allConfigs.find(c => c && c.fontFamily && c.fontFamily !== 'Sarabun');
+        setCertificateFont(customFontConfig?.fontFamily || 'Sarabun');
       }
     };
     if (selectedActivityId) {

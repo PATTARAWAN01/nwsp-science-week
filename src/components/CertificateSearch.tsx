@@ -24,11 +24,15 @@ interface CertificateSearchProps {
 }
 
 export const CertificateSearch: React.FC<CertificateSearchProps> = ({
-  results,
-  activities,
-  certificateConfigs,
+  results = [],
+  activities = [],
+  certificateConfigs = [],
   academicYear
 }) => {
+  const safeResults = Array.isArray(results) ? results.filter(Boolean) : [];
+  const safeActivities = Array.isArray(activities) ? activities.filter(Boolean) : [];
+  const safeCertConfigs = Array.isArray(certificateConfigs) ? certificateConfigs.filter(Boolean) : [];
+
   const [selectedSearchYear, setSelectedSearchYear] = useState<string>(academicYear);
   const [searchTerm, setSearchTerm] = useState('');
   const [downloadingFormat, setDownloadingFormat] = useState<'pdf' | 'png' | null>(null);
@@ -63,7 +67,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   const searchClean = searchTerm.trim().toLowerCase();
 
   if (searchClean.length >= 2) {
-    results.forEach(res => {
+    safeResults.forEach(res => {
       if (res && res.academicYear === selectedSearchYear && Array.isArray(res.members)) {
         res.members.forEach((member, memberIdx) => {
           if (!member) return;
@@ -98,13 +102,26 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
     }
   };
 
+  const findBestCertConfig = (configs: CertificateConfig[], actId: string, year?: string) => {
+    if (!configs || configs.length === 0) return undefined;
+    let match = configs.find(c => c && c.activityId === actId && (!year || c.academicYear === year));
+    if (!match) match = configs.find(c => c && c.activityId === actId);
+    if (!match) match = configs.find(c => c && (c.activityId === 'default' || c.id?.startsWith('default_')));
+    if (!match) match = configs[0];
+
+    // If the matched config has Sarabun, check if a custom font was saved elsewhere in configs
+    if (match && match.fontFamily === 'Sarabun') {
+      const customFontConfig = configs.find(c => c && c.fontFamily && c.fontFamily !== 'Sarabun');
+      if (customFontConfig) {
+        return { ...match, fontFamily: customFontConfig.fontFamily };
+      }
+    }
+    return match;
+  };
+
   // Open Preview Modal
   const handleOpenPreview = (res: CompetitionResult, studentName: string, studentCertId: string) => {
-    const config = certificateConfigs.find(
-      c => c && c.activityId === res.activityId && (!res.academicYear || c.academicYear === res.academicYear)
-    ) || certificateConfigs.find(
-      c => c && c.activityId === res.activityId
-    ) || certificateConfigs[0];
+    const config = findBestCertConfig(safeCertConfigs, res.activityId, res.academicYear);
     setPreviewCert({ result: res, studentName, studentCertId, config });
   };
 
