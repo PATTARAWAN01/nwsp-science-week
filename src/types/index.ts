@@ -83,6 +83,7 @@ export interface CertificateConfig {
   level: LevelCategory;
   bgImageUrl?: string;
   fontFamily?: string;
+  updatedAt?: number;
   visibleElements?: {
     studentName?: boolean;
     award?: boolean;

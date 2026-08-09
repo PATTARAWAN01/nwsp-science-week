@@ -455,7 +455,16 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
         const cloudConfig = docSnap.data() as CertificateConfig;
         if (cloudConfig && cloudConfig.activityId) {
           const key = `${cloudConfig.activityId}_${cloudConfig.academicYear || ''}`;
-          configMap.set(key, cloudConfig);
+          const existing = configMap.get(key);
+          if (!existing) {
+            configMap.set(key, cloudConfig);
+          } else {
+            const cloudTime = cloudConfig.updatedAt || 0;
+            const existingTime = existing.updatedAt || 0;
+            if (cloudTime > existingTime || (cloudConfig.fontFamily && cloudConfig.fontFamily !== 'Sarabun' && existing.fontFamily === 'Sarabun')) {
+              configMap.set(key, cloudConfig);
+            }
+          }
         }
       });
     } catch (err) {
@@ -469,38 +478,29 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
 };
 
 export const saveCertificateConfig = async (config: CertificateConfig): Promise<void> => {
-  const list = getLocal<CertificateConfig[]>(STORAGE_KEYS.CERT_CONFIGS, []);
-  // Match by activityId and academicYear (shared between levels ม.ต้น & ม.ปลาย)
-  const idx = list.findIndex(c => c.activityId === config.activityId && c.academicYear === config.academicYear);
-  if (idx >= 0) {
-    list[idx] = config;
-  } else {
-    list.push(config);
-  }
+  const configWithTimestamp: CertificateConfig = {
+    ...config,
+    updatedAt: Date.now()
+  };
 
-  // Also update or insert default fallback config in local storage
-  const defaultConfig = { ...config, activityId: 'default', id: `default_${config.academicYear}` };
-  const defaultIdx = list.findIndex(c => c.activityId === 'default' && c.academicYear === config.academicYear);
-  if (defaultIdx >= 0) {
-    list[defaultIdx] = defaultConfig;
+  const list = getLocal<CertificateConfig[]>(STORAGE_KEYS.CERT_CONFIGS, []);
+  // Match by activityId and academicYear
+  const idx = list.findIndex(c => c.activityId === configWithTimestamp.activityId && c.academicYear === configWithTimestamp.academicYear);
+  if (idx >= 0) {
+    list[idx] = configWithTimestamp;
   } else {
-    list.push(defaultConfig);
+    list.push(configWithTimestamp);
   }
 
   setLocal(STORAGE_KEYS.CERT_CONFIGS, list);
 
   if (isFirebaseConfigured() && db) {
     try {
-      const cleanData = cleanForFirestore(config);
-      const docId = `${config.activityId}_${config.academicYear}`;
+      const cleanData = cleanForFirestore(configWithTimestamp);
+      const docId = `${configWithTimestamp.activityId}_${configWithTimestamp.academicYear}`;
       await setDoc(doc(db, 'certificate_configs', docId), cleanData);
-      await setDoc(doc(db, 'certificate_configs', config.activityId), cleanData);
-
-      // Save global default fallback to Firestore online as well
-      const cleanDefault = cleanForFirestore(defaultConfig);
-      await setDoc(doc(db, 'certificate_configs', `default_${config.academicYear}`), cleanDefault);
-      await setDoc(doc(db, 'certificate_configs', 'default'), cleanDefault);
-      console.log("Certificate config and default fallback successfully saved to Cloud Firestore online:", docId);
+      await setDoc(doc(db, 'certificate_configs', configWithTimestamp.activityId), cleanData);
+      console.log("Certificate config successfully saved to Cloud Firestore online:", docId);
     } catch (err) {
       console.error("Firestore save certificate config failed:", err);
     }
