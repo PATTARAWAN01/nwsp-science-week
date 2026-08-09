@@ -33,7 +33,10 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   const safeActivities = Array.isArray(activities) ? activities.filter(Boolean) : [];
   const safeCertConfigs = Array.isArray(certificateConfigs) ? certificateConfigs.filter(Boolean) : [];
 
-  const [selectedSearchYear, setSelectedSearchYear] = useState<string>(academicYear);
+  const [mobilePreviewImage, setMobilePreviewImage] = useState<{ url: string; fileName: string } | null>(null);
+  const isMobileDevice = typeof window !== 'undefined' && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768);
+
+  const [selectedSearchYear, setSelectedSearchYear] = useState<string>(academicYear || '2569');
   const [searchTerm, setSearchTerm] = useState('');
   const [downloadingFormat, setDownloadingFormat] = useState<'pdf' | 'png' | null>(null);
   
@@ -48,9 +51,10 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   const printRef = useRef<HTMLDivElement>(null);
 
   // Years options list (e.g. 2568, 2569, 2570, 2571, 2572)
+  const defaultYear = academicYear || '2569';
   const yearOptions = ['2568', '2569', '2570', '2571', '2572'];
-  if (!yearOptions.includes(academicYear)) {
-    yearOptions.push(academicYear);
+  if (defaultYear && !yearOptions.includes(defaultYear)) {
+    yearOptions.push(defaultYear);
   }
 
   // Search by student name or surname within the selected academic year
