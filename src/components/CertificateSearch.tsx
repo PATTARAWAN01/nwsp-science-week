@@ -94,16 +94,11 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
     });
   }
 
-  // Font family helper
+  // Font family helper supporting all 28 Thai Google Fonts
   const getFontClass = (fontName?: string) => {
-    switch (fontName) {
-      case 'Charm': return 'font-charm';
-      case 'Chonburi': return 'font-chonburi';
-      case 'Mali': return 'font-mali';
-      case 'Niramit': return 'font-niramit';
-      case 'Prompt': return 'font-prompt';
-      default: return 'font-sarabun';
-    }
+    const target = fontName || 'Sarabun';
+    const clean = target.toLowerCase().replace(/\s+/g, '');
+    return `font-${clean}`;
   };
 
   const findBestCertConfig = (configs: CertificateConfig[], actId: string, year?: string) => {
@@ -118,6 +113,9 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   // Open Preview Modal
   const handleOpenPreview = (res: CompetitionResult, studentName: string, studentCertId: string) => {
     const config = findBestCertConfig(safeCertConfigs, res.activityId, res.academicYear);
+    if (config?.fontFamily) {
+      ensureFontLoaded(config.fontFamily);
+    }
     setPreviewCert({ result: res, studentName, studentCertId, config });
   };
 
@@ -214,13 +212,13 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       initialFontSize: number,
       color: string,
       fontWeight: string,
-      maxAvailableWidth: number = canvas.width * 0.85
+      maxAvailableWidth: number = canvas.width * 0.78
     ) => {
       let size = Math.round(initialFontSize * 1.7);
       ctx.font = getCanvasFont(fontWeight, size);
       let textWidth = ctx.measureText(text).width;
-      while (textWidth > maxAvailableWidth && size > 16) {
-        size -= 2;
+      while (textWidth > maxAvailableWidth && size > 14) {
+        size -= 1.5;
         ctx.font = getCanvasFont(fontWeight, size);
         textWidth = ctx.measureText(text).width;
       }
