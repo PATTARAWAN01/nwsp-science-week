@@ -108,14 +108,6 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
     if (!match) match = configs.find(c => c && c.activityId === actId);
     if (!match) match = configs.find(c => c && (c.activityId === 'default' || c.id?.startsWith('default_')));
     if (!match) match = configs[0];
-
-    // If the matched config has Sarabun, check if a custom font was saved elsewhere in configs
-    if (match && match.fontFamily === 'Sarabun') {
-      const customFontConfig = configs.find(c => c && c.fontFamily && c.fontFamily !== 'Sarabun');
-      if (customFontConfig) {
-        return { ...match, fontFamily: customFontConfig.fontFamily };
-      }
-    }
     return match;
   };
 
