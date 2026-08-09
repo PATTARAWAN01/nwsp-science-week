@@ -444,7 +444,7 @@ const sanitizeConfigPositions = (c: CertificateConfig): CertificateConfig => {
       levelText: p.levelText ? { ...p.levelText, x: 50 } : { x: 50, y: 67, fontSize: 18, color: '#475569', fontWeight: 'normal' },
       academicYearText: p.academicYearText ? { ...p.academicYearText, x: 50 } : { x: 50, y: 73, fontSize: 16, color: '#475569', fontWeight: 'normal' },
       issueDate: p.issueDate || { x: 25, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' },
-      certId: (p.certId && p.certId.y <= 84) ? p.certId : { x: 80, y: 83, fontSize: 16, color: '#475569', fontWeight: 'bold' }
+      certId: p.certId || { x: 75, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' }
     }
   };
 };
