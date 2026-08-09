@@ -232,39 +232,40 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
 
     // Helper to lock central text elements at exact 50% horizontal center
     const getCenterX = (xVal?: number) => {
-      if (xVal === undefined || xVal === null) return 50;
-      if (xVal >= 35 && xVal <= 65) return 50;
-      return xVal;
+      return 50;
     };
 
     // 1. Student Name
     if (config?.visibleElements?.studentName ?? true) {
       const pos = config?.positions?.studentName || { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' };
-      drawTextAutoFit(item.studentName, getCenterX(pos.x), pos.y || 42, pos.fontSize || 34, pos.color || '#0c4a6e', pos.fontWeight || 'bold');
+      drawTextAutoFit(item.studentName, 50, pos.y || 42, pos.fontSize || 34, pos.color || '#0c4a6e', pos.fontWeight || 'bold');
     }
 
     // 2. Award Text
     if (config?.visibleElements?.award ?? true) {
       const pos = config?.positions?.award || { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' };
-      drawTextAutoFit(getFullAwardText(item.award), getCenterX(pos.x), pos.y || 52, pos.fontSize || 26, pos.color || '#b45309', pos.fontWeight || 'bold');
+      drawTextAutoFit(getFullAwardText(item.award), 50, pos.y || 52, pos.fontSize || 26, pos.color || '#b45309', pos.fontWeight || 'bold');
     }
 
     // 3. Activity Name & Level
     if (config?.visibleElements?.activityName ?? true) {
       const pos = config?.positions?.activityName || { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' };
       const levelStr = item.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย';
-      drawTextAutoFit(`${item.activityTitle} ${levelStr}`, getCenterX(pos.x), pos.y || 60, pos.fontSize || 22, pos.color || '#334155', pos.fontWeight || 'bold');
+      drawTextAutoFit(`${item.activityTitle} ${levelStr}`, 50, pos.y || 60, pos.fontSize || 22, pos.color || '#334155', pos.fontWeight || 'bold');
     }
 
-    // 4. Certificate ID
+    // 4. Certificate ID (Crisp, High-Resolution Bold Font)
     if (config?.visibleElements?.certId ?? true) {
-      const pos = config?.positions?.certId || { x: 75, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' };
-      const scaledSize = Math.round(pos.fontSize * 1.6);
-      ctx.font = getCanvasFont(pos.fontWeight || 'normal', scaledSize);
-      ctx.fillStyle = pos.color || '#64748b';
-      ctx.textAlign = 'center';
+      const pos = config?.positions?.certId || { x: 80, y: 88, fontSize: 16, color: '#475569', fontWeight: 'bold' };
+      const scaledSize = Math.max(30, Math.round((pos.fontSize || 16) * 2.2));
+      ctx.font = `700 ${scaledSize}px Sarabun, sans-serif`;
+      ctx.fillStyle = pos.color || '#475569';
+      ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(item.certificateId, (pos.x / 100) * canvas.width, (pos.y / 100) * canvas.height);
+      const rawId = item.certificateId || '';
+      const displayCertId = rawId.startsWith('เลขที่') ? rawId : `เลขที่ ${rawId}`;
+      const posX = pos.x > 92 ? 88 : (pos.x || 80);
+      ctx.fillText(displayCertId, (posX / 100) * canvas.width, (pos.y / 100) * canvas.height);
     }
 
     if (!bgLoaded) {
@@ -606,7 +607,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                       color: '#64748b'
                     }}
                   >
-                    {previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`}
+                    {previewCert.studentCertId ? (previewCert.studentCertId.startsWith('เลขที่') ? previewCert.studentCertId : `เลขที่ ${previewCert.studentCertId}`) : (previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`)}
                   </div>
                 )}
 
