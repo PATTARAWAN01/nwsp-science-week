@@ -432,6 +432,23 @@ export const deleteResult = async (id: string): Promise<void> => {
   }
 };
 
+const sanitizeConfigPositions = (c: CertificateConfig): CertificateConfig => {
+  if (!c) return c;
+  const p = c.positions || {};
+  return {
+    ...c,
+    positions: {
+      studentName: p.studentName ? { ...p.studentName, x: 50 } : { x: 50, y: 42, fontSize: 34, color: '#0c4a6e', fontWeight: 'bold' },
+      award: p.award ? { ...p.award, x: 50 } : { x: 50, y: 52, fontSize: 26, color: '#b45309', fontWeight: 'bold' },
+      activityName: p.activityName ? { ...p.activityName, x: 50 } : { x: 50, y: 60, fontSize: 22, color: '#334155', fontWeight: 'bold' },
+      levelText: p.levelText ? { ...p.levelText, x: 50 } : { x: 50, y: 67, fontSize: 18, color: '#475569', fontWeight: 'normal' },
+      academicYearText: p.academicYearText ? { ...p.academicYearText, x: 50 } : { x: 50, y: 73, fontSize: 16, color: '#475569', fontWeight: 'normal' },
+      issueDate: p.issueDate || { x: 25, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' },
+      certId: p.certId || { x: 80, y: 88, fontSize: 16, color: '#475569', fontWeight: 'bold' }
+    }
+  };
+};
+
 // Certificate Config API (3-Way Merge: LocalStorage + Cloud Firestore)
 export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
   const configMap = new Map<string, CertificateConfig>();
@@ -442,7 +459,7 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
     localList.forEach(c => {
       if (c && c.activityId) {
         const key = `${c.activityId}_${c.academicYear || ''}`;
-        configMap.set(key, c);
+        configMap.set(key, sanitizeConfigPositions(c));
       }
     });
   }
@@ -454,15 +471,16 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
       querySnapshot.forEach((docSnap) => {
         const cloudConfig = docSnap.data() as CertificateConfig;
         if (cloudConfig && cloudConfig.activityId) {
-          const key = `${cloudConfig.activityId}_${cloudConfig.academicYear || ''}`;
+          const sanitizedCloud = sanitizeConfigPositions(cloudConfig);
+          const key = `${sanitizedCloud.activityId}_${sanitizedCloud.academicYear || ''}`;
           const existing = configMap.get(key);
           if (!existing) {
-            configMap.set(key, cloudConfig);
+            configMap.set(key, sanitizedCloud);
           } else {
-            const cloudTime = cloudConfig.updatedAt || 0;
+            const cloudTime = sanitizedCloud.updatedAt || 0;
             const existingTime = existing.updatedAt || 0;
-            if (cloudTime > existingTime || (cloudConfig.fontFamily && cloudConfig.fontFamily !== 'Sarabun' && existing.fontFamily === 'Sarabun')) {
-              configMap.set(key, cloudConfig);
+            if (cloudTime > existingTime || (sanitizedCloud.fontFamily && sanitizedCloud.fontFamily !== 'Sarabun' && existing.fontFamily === 'Sarabun')) {
+              configMap.set(key, sanitizedCloud);
             }
           }
         }
@@ -478,8 +496,9 @@ export const getCertificateConfigs = async (): Promise<CertificateConfig[]> => {
 };
 
 export const saveCertificateConfig = async (config: CertificateConfig): Promise<void> => {
+  const sanitized = sanitizeConfigPositions(config);
   const configWithTimestamp: CertificateConfig = {
-    ...config,
+    ...sanitized,
     updatedAt: Date.now()
   };
 
