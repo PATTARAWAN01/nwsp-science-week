@@ -119,7 +119,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
     return `ได้รับ${awardStr}`;
   };
 
-  // Direct Canvas 2D Renderer for 100% Reliable PDF/PNG Exports
+  // Direct Canvas 2D Generator for 100% Taint-Free, High Resolution Certificate Rendering
   const generateCertificateCanvas2D = async (
     item: {
       studentName: string;
@@ -132,8 +132,8 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
     config: CertificateConfig | null
   ): Promise<HTMLCanvasElement> => {
     const canvas = document.createElement('canvas');
-    canvas.width = 2000;
-    canvas.height = 1414;
+    canvas.width = 1600;
+    canvas.height = 1131;
     const ctx = canvas.getContext('2d');
     if (!ctx) return canvas;
 
@@ -273,7 +273,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
         award: previewCert.result.award,
         activityTitle: previewCert.result.activityTitle,
         level: previewCert.result.level,
-        certificateId: previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`,
+        certificateId: previewCert.studentCertId || previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`,
         academicYear: previewCert.result.academicYear
       };
 
@@ -292,9 +292,26 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       }
 
       if (format === 'png') {
+        // Build Blob URL for 100% Mobile Phone & Desktop Compatibility
+        const arr = imgData.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+
+        if (isMobileDevice) {
+          // Open interactive mobile image save viewer (supports tap & hold / long press to save)
+          setMobilePreviewImage({ url: blobUrl, fileName: `${fileName}.png` });
+        }
+
         const link = document.createElement('a');
         link.download = `${fileName}.png`;
-        link.href = imgData;
+        link.href = blobUrl;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -588,30 +605,88 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
               <button
                 onClick={() => handleExportFile('png')}
                 disabled={downloadingFormat !== null}
-                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold rounded-xl text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
               >
                 {downloadingFormat === 'png' ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <FileImage className="w-4 h-4" />
                 )}
-                ดาวน์โหลดเป็นไฟล์ PNG (ภาพคมชัด)
+                {isMobileDevice ? '📸 บันทึกรูปภาพเกียรติบัตร (ไฟล์ภาพ PNG)' : 'ดาวน์โหลดเป็นไฟล์ PNG (ภาพคมชัด)'}
               </button>
 
+              {!isMobileDevice && (
+                <button
+                  onClick={() => handleExportFile('pdf')}
+                  disabled={downloadingFormat !== null}
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  {downloadingFormat === 'pdf' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  ดาวน์โหลดเป็นไฟล์ PDF (สำหรับพิมพ์)
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Mobile Image Saver Modal (Long-Press to Save to Photos) */}
+      {mobilePreviewImage && (
+        <div className="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-fadeIn overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 text-center space-y-4 shadow-2xl border border-white/80 my-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-emerald-700 font-extrabold text-sm">
+                <Sparkles className="w-5 h-5 text-emerald-600" />
+                บันทึกรูปภาพเกียรติบัตรลงมือถือ
+              </div>
               <button
-                onClick={() => handleExportFile('pdf')}
-                disabled={downloadingFormat !== null}
-                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 text-white font-bold rounded-xl text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                onClick={() => setMobilePreviewImage(null)}
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"
               >
-                {downloadingFormat === 'pdf' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                ดาวน์โหลดเป็นไฟล์ PDF (สำหรับพิมพ์)
+                <X className="w-5 h-5" />
               </button>
             </div>
 
+            <div className="space-y-3">
+              <div className="bg-emerald-50 text-emerald-800 p-3 rounded-2xl border border-emerald-200 text-xs font-bold space-y-1 text-left">
+                <p className="flex items-center gap-1.5 font-extrabold text-emerald-900">
+                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                  วิธีบันทึกรูปภาพลงสมาร์ทโฟน/แท็บเล็ต:
+                </p>
+                <p>1. แตะค้างที่รูปภาพเกียรติบัตรด้านล่าง</p>
+                <p>2. เลือก <strong>"บันทึกภาพ" (Add to Photos)</strong> หรือ <strong>"ดาวน์โหลดรูปภาพ"</strong></p>
+              </div>
+
+              <div className="rounded-2xl overflow-hidden border border-slate-300 shadow-md max-h-[60vh] overflow-y-auto bg-slate-100 p-1">
+                <img 
+                  src={mobilePreviewImage.url} 
+                  alt="เกียรติบัตรฉบับจริง"
+                  className="w-full h-auto object-contain rounded-xl select-all touch-auto"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <a
+                href={mobilePreviewImage.url}
+                download={mobilePreviewImage.fileName}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-md"
+              >
+                <Download className="w-4 h-4" />
+                ดาวน์โหลดรูปภาพลงเครื่องโดยตรง
+              </a>
+              <button
+                onClick={() => setMobilePreviewImage(null)}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
           </div>
         </div>
       )}

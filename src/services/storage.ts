@@ -494,10 +494,12 @@ export const saveCertificateConfig = async (config: CertificateConfig): Promise<
       const cleanData = cleanForFirestore(config);
       const docId = `${config.activityId}_${config.academicYear}`;
       await setDoc(doc(db, 'certificate_configs', docId), cleanData);
+      await setDoc(doc(db, 'certificate_configs', config.activityId), cleanData);
 
       // Save global default fallback to Firestore online as well
       const cleanDefault = cleanForFirestore(defaultConfig);
       await setDoc(doc(db, 'certificate_configs', `default_${config.academicYear}`), cleanDefault);
+      await setDoc(doc(db, 'certificate_configs', 'default'), cleanDefault);
       console.log("Certificate config and default fallback successfully saved to Cloud Firestore online:", docId);
     } catch (err) {
       console.error("Firestore save certificate config failed:", err);
