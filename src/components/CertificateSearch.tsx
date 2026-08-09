@@ -686,11 +686,12 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                 <p>2. เลือก <strong>"บันทึกภาพ" (Add to Photos)</strong> หรือ <strong>"ดาวน์โหลดรูปภาพ"</strong></p>
               </div>
 
-              <div className="rounded-2xl overflow-hidden border border-slate-300 shadow-md max-h-[60vh] overflow-y-auto bg-slate-100 p-1">
+              <div className="w-full aspect-[1.414/1] rounded-2xl overflow-hidden border border-slate-300 shadow-md bg-slate-100 flex items-center justify-center p-1">
                 <img 
                   src={mobilePreviewImage.url} 
                   alt="เกียรติบัตรฉบับจริง"
-                  className="w-full h-auto object-contain rounded-xl select-all touch-auto"
+                  className="w-full h-full object-contain rounded-xl select-all touch-auto"
+                  style={{ maxWidth: '100%', maxHeight: '100%', display: 'block' }}
                 />
               </div>
             </div>
