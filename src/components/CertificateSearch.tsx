@@ -255,7 +255,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
 
     // 4. Certificate ID (Crisp, High-Resolution Custom Font)
     if (config?.visibleElements?.certId ?? true) {
-      const pos = config?.positions?.certId || { x: 80, y: 88, fontSize: 16, color: '#475569', fontWeight: 'bold' };
+      const pos = config?.positions?.certId || { x: 80, y: 83, fontSize: 16, color: '#475569', fontWeight: 'bold' };
       const scaledSize = Math.max(30, Math.round((pos.fontSize || 16) * 2.2));
       ctx.font = getCanvasFont(pos.fontWeight || 'bold', scaledSize);
       ctx.fillStyle = pos.color || '#475569';
@@ -264,7 +264,8 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       const rawId = item.certificateId || '';
       const displayCertId = rawId.startsWith('เลขที่') ? rawId : `เลขที่ ${rawId}`;
       const posX = Math.min(84, pos.x || 80);
-      ctx.fillText(displayCertId, (posX / 100) * canvas.width, (pos.y / 100) * canvas.height);
+      const posY = Math.min(84, (pos.y && pos.y > 84) ? 83 : (pos.y || 83));
+      ctx.fillText(displayCertId, (posX / 100) * canvas.width, (posY / 100) * canvas.height);
     }
 
     if (!bgLoaded) {
@@ -579,7 +580,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                 className={`absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ${getFontClass(previewCert.config?.fontFamily)}`}
                 style={{
                   left: `${previewCert.config?.positions?.certId?.x || 80}%`,
-                  top: `${previewCert.config?.positions?.certId?.y || 88}%`,
+                  top: `${Math.min(84, (previewCert.config?.positions?.certId?.y || 88) > 84 ? 83 : (previewCert.config?.positions?.certId?.y || 83))}%`,
                   fontSize: `${(previewCert.config?.positions?.certId?.fontSize || 16) * 2.0}px`,
                   color: previewCert.config?.positions?.certId?.color || '#475569',
                   fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif'
@@ -693,13 +694,13 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                     className={`absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ${getFontClass(previewCert.config?.fontFamily)}`}
                     style={previewCert.config?.positions?.certId ? {
                       left: `${previewCert.config.positions.certId.x}%`,
-                      top: `${previewCert.config.positions.certId.y}%`,
+                      top: `${Math.min(84, previewCert.config.positions.certId.y > 84 ? 83 : previewCert.config.positions.certId.y)}%`,
                       fontSize: `${(previewCert.config.positions.certId.fontSize / 800) * 100}cqw`,
                       color: previewCert.config.positions.certId.color,
                       fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif'
                     } : {
                       left: '75%',
-                      top: '88%',
+                      top: '83%',
                       fontSize: '1.75cqw',
                       color: '#64748b',
                       fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif'
