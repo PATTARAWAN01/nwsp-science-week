@@ -49,6 +49,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
   } | null>(null);
 
   const printRef = useRef<HTMLDivElement>(null);
+  const printRefHD = useRef<HTMLDivElement>(null);
 
   // Years options list (e.g. 2568, 2569, 2570, 2571, 2572)
   const defaultYear = academicYear || '2569';
@@ -304,12 +305,30 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       const canvas = await generateCertificateCanvas2D(item, previewCert.config);
 
       let imgData: string;
-      try {
-        imgData = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
-      } catch (e) {
-        console.warn("Canvas export tainted, generating clean fallback canvas:", e);
-        const fallbackCanvas = await generateCertificateCanvas2D(item, { ...previewCert.config, bgImageUrl: undefined });
-        imgData = fallbackCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+      if (printRefHD.current) {
+        try {
+          const domCanvas = await html2canvas(printRefHD.current, {
+            scale: 1,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            width: 1600,
+            height: 1131
+          });
+          imgData = domCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+        } catch (e) {
+          console.warn("Offscreen capture failed, using Canvas2D fallback:", e);
+          const canvas = await generateCertificateCanvas2D(item, previewCert.config);
+          imgData = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+        }
+      } else {
+        const canvas = await generateCertificateCanvas2D(item, previewCert.config);
+        try {
+          imgData = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+        } catch (e) {
+          const fallbackCanvas = await generateCertificateCanvas2D(item, { ...previewCert.config, bgImageUrl: undefined });
+          imgData = fallbackCanvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+        }
       }
 
       if (format === 'png') {
@@ -496,6 +515,82 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
           </div>
         )}
       </div>
+
+      {/* Off-Screen 1600x1131 HD Render Container for 100% Perfect HTML-to-Image 1:1 Match */}
+      {previewCert && (
+        <div className="fixed -left-[9999px] -top-[9999px] pointer-events-none z-[-100] opacity-0 overflow-hidden">
+          <div
+            ref={printRefHD}
+            className={`w-[1600px] h-[1131px] bg-white relative rounded-none overflow-hidden text-slate-900 select-none ${getFontClass(previewCert.config?.fontFamily)}`}
+            style={{
+              fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif',
+              backgroundImage: previewCert.config?.bgImageUrl 
+                ? `url(${previewCert.config.bgImageUrl})` 
+                : 'radial-gradient(circle at 50% 50%, #ffffff 0%, #f0f9ff 100%)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          >
+            {/* Student Name */}
+            {(previewCert.config?.visibleElements?.studentName ?? true) && (
+              <div
+                className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap text-center"
+                style={{
+                  top: `${previewCert.config?.positions?.studentName?.y || 42}%`,
+                  fontSize: `${(previewCert.config?.positions?.studentName?.fontSize || 34) * 1.7}px`,
+                  color: previewCert.config?.positions?.studentName?.color || '#0c4a6e'
+                }}
+              >
+                {previewCert.studentName}
+              </div>
+            )}
+
+            {/* Award Text */}
+            {(previewCert.config?.visibleElements?.award ?? true) && (
+              <div
+                className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap text-center"
+                style={{
+                  top: `${previewCert.config?.positions?.award?.y || 52}%`,
+                  fontSize: `${(previewCert.config?.positions?.award?.fontSize || 26) * 1.7}px`,
+                  color: previewCert.config?.positions?.award?.color || '#b45309'
+                }}
+              >
+                {getFullAwardText(previewCert.result.award)}
+              </div>
+            )}
+
+            {/* Activity Name & Level */}
+            {(previewCert.config?.visibleElements?.activityName ?? true) && (
+              <div
+                className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap text-center"
+                style={{
+                  top: `${previewCert.config?.positions?.activityName?.y || 60}%`,
+                  fontSize: `${(previewCert.config?.positions?.activityName?.fontSize || 22) * 1.7}px`,
+                  color: previewCert.config?.positions?.activityName?.color || '#334155'
+                }}
+              >
+                {previewCert.result.activityTitle} {previewCert.result.level === 'ม.ต้น' ? 'ระดับชั้นมัธยมศึกษาตอนต้น' : 'ระดับชั้นมัธยมศึกษาตอนปลาย'}
+              </div>
+            )}
+
+            {/* Certificate ID */}
+            {(previewCert.config?.visibleElements?.certId ?? true) && (
+              <div
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap ${getFontClass(previewCert.config?.fontFamily)}`}
+                style={{
+                  left: `${previewCert.config?.positions?.certId?.x || 80}%`,
+                  top: `${previewCert.config?.positions?.certId?.y || 88}%`,
+                  fontSize: `${(previewCert.config?.positions?.certId?.fontSize || 16) * 2.0}px`,
+                  color: previewCert.config?.positions?.certId?.color || '#475569',
+                  fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif'
+                }}
+              >
+                {previewCert.studentCertId ? (previewCert.studentCertId.startsWith('เลขที่') ? previewCert.studentCertId : `เลขที่ ${previewCert.studentCertId}`) : (previewCert.result.certificateId || `NWSP-${previewCert.result.academicYear}-${previewCert.result.id.slice(0, 6).toUpperCase()}`)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Interactive Preview & Download Modal */}
       {previewCert && (
