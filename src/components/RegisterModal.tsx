@@ -40,11 +40,24 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // Set default initial activity or first available
+  // Set default initial activity or first available open level
   useEffect(() => {
     if (initialActivity) {
       setSelectedActivityId(initialActivity.id);
-      if (initialActivity.levels.includes('ม.ต้น')) {
+
+      const isJuniorOpen = initialActivity.levels.includes('ม.ต้น') && 
+                           initialActivity.isOpen && 
+                           !(initialActivity.closedLevels || []).includes('ม.ต้น');
+
+      const isSeniorOpen = initialActivity.levels.includes('ม.ปลาย') && 
+                           initialActivity.isOpen && 
+                           !(initialActivity.closedLevels || []).includes('ม.ปลาย');
+
+      if (isJuniorOpen) {
+        setLevel('ม.ต้น');
+      } else if (isSeniorOpen) {
+        setLevel('ม.ปลาย');
+      } else if (initialActivity.levels.includes('ม.ต้น')) {
         setLevel('ม.ต้น');
       } else if (initialActivity.levels.includes('ม.ปลาย')) {
         setLevel('ม.ปลาย');
@@ -54,13 +67,14 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
     }
   }, [initialActivity, activities]);
 
-  // Filter activities matching chosen level that are open for registration for this specific level
-  const availableActivities = activities.filter(act => 
-    act.levels.includes(level) && 
-    act.isOpen && 
-    !(act.closedLevels || []).includes(level)
-  );
-  const currentActivity = activities.find(act => act.id === selectedActivityId) || availableActivities[0];
+  // All activities supporting chosen level
+  const filteredActivities = activities.filter(act => act.levels.includes(level));
+  const currentActivity = activities.find(act => act.id === selectedActivityId) || filteredActivities[0];
+
+  // Check if current activity is closed specifically for the chosen level
+  const isCurrentSelectedLevelClosed = !currentActivity || 
+    !currentActivity.isOpen || 
+    (currentActivity.closedLevels || []).includes(level);
 
   // Adjust member list count based on teamSize & sanitize grade when level changes
   useEffect(() => {
@@ -273,29 +287,51 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
 
               {/* Level Buttons */}
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLevel('ม.ต้น')}
-                  className={`py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition-all ${
-                    level === 'ม.ต้น'
-                      ? 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-500/20'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  มัธยมศึกษาตอนต้น (ม.1 - ม.3)
-                </button>
+                {(() => {
+                  const isJuniorClosed = currentActivity ? (!currentActivity.isOpen || (currentActivity.closedLevels || []).includes('ม.ต้น')) : false;
+                  const isSeniorClosed = currentActivity ? (!currentActivity.isOpen || (currentActivity.closedLevels || []).includes('ม.ปลาย')) : false;
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setLevel('ม.ต้น')}
+                        className={`py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1.5 border transition-all ${
+                          level === 'ม.ต้น'
+                            ? 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-500/20'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>มัธยมศึกษาตอนต้น (ม.1 - ม.3)</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          isJuniorClosed 
+                            ? (level === 'ม.ต้น' ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-800')
+                            : (level === 'ม.ต้น' ? 'bg-sky-400 text-white' : 'bg-emerald-100 text-emerald-800')
+                        }`}>
+                          {isJuniorClosed ? '🔴 ปิด' : '🟢 เปิด'}
+                        </span>
+                      </button>
 
-                <button
-                  type="button"
-                  onClick={() => setLevel('ม.ปลาย')}
-                  className={`py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition-all ${
-                    level === 'ม.ปลาย'
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  มัธยมศึกษาตอนปลาย (ม.4 - ม.6)
-                </button>
+                      <button
+                        type="button"
+                        onClick={() => setLevel('ม.ปลาย')}
+                        className={`py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1.5 border transition-all ${
+                          level === 'ม.ปลาย'
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>มัธยมศึกษาตอนปลาย (ม.4 - ม.6)</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          isSeniorClosed 
+                            ? (level === 'ม.ปลาย' ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-800')
+                            : (level === 'ม.ปลาย' ? 'bg-purple-400 text-white' : 'bg-emerald-100 text-emerald-800')
+                        }`}>
+                          {isSeniorClosed ? '🔴 ปิด' : '🟢 เปิด'}
+                        </span>
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Activity Selector Select dropdown */}
@@ -308,17 +344,33 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                   onChange={(e) => setSelectedActivityId(e.target.value)}
                   className="w-full glass-input px-3.5 py-2.5 rounded-xl font-semibold text-sm text-slate-800 border-slate-300"
                 >
-                  {availableActivities.length === 0 ? (
-                    <option value="">-- ไม่มีกิจกรรมเปิดรับสมัครสำหรับช่วงชั้นนี้ --</option>
+                  {filteredActivities.length === 0 ? (
+                    <option value="">-- ไม่มีกิจกรรมสำหรับช่วงชั้นนี้ --</option>
                   ) : (
-                    availableActivities.map(act => (
-                      <option key={act.id} value={act.id}>
-                        {act.title} ({act.type === 'team' ? `ทีม ${act.teamSize} คน` : 'เดี่ยว'})
-                      </option>
-                    ))
+                    filteredActivities.map(act => {
+                      const isClosed = !act.isOpen || (act.closedLevels || []).includes(level);
+                      return (
+                        <option key={act.id} value={act.id}>
+                          {act.title} ({act.type === 'team' ? `ทีม ${act.teamSize} คน` : 'เดี่ยว'}) {isClosed ? '🔴 [ปิดรับสมัครแล้ว]' : '🟢 [เปิดรับสมัคร]'}
+                        </option>
+                      );
+                    })
                   )}
                 </select>
               </div>
+
+              {/* Warning Alert if Current Selected Activity is Closed for this Level */}
+              {isCurrentSelectedLevelClosed && (
+                <div className="bg-rose-50 border-2 border-rose-300 p-4 rounded-2xl text-rose-900 font-bold text-xs sm:text-sm flex items-start gap-3 animate-fadeIn">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-extrabold text-rose-950">กิจกรรม "{currentActivity?.title}" ปิดรับสมัครสำหรับระดับ {level} เรียบร้อยแล้ว</div>
+                    <div className="font-normal text-rose-800 text-xs mt-1">
+                      ท่านสามารถสลับไปเลือกระดับชั้นอื่น (เช่น {level === 'ม.ต้น' ? 'ม.ปลาย' : 'ม.ต้น'}) ที่ยังเปิดรับสมัครอยู่ หรือเลือกกิจกรรมการแข่งขันอื่นได้ครับ
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {currentActivity && (
                 <div className="bg-white p-3 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
@@ -506,11 +558,26 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="px-7 py-3 bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center gap-2"
+                disabled={isSubmitting || isCurrentSelectedLevelClosed}
+                className={`px-7 py-3 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all ${
+                  isCurrentSelectedLevelClosed
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-slate-300'
+                    : 'bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-sky-500/25 hover:shadow-sky-500/40 hover:scale-[1.01] active:scale-[0.99]'
+                }`}
               >
-                {isSubmitting ? 'กำลังบันทึกข้อมูล...' : 'ยืนยันการลงทะเบียนสมัคร'}
-                <ArrowRight className="w-4 h-4" />
+                {isCurrentSelectedLevelClosed ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-slate-400" />
+                    🔒 ปิดรับสมัครระดับ {level} แล้ว
+                  </>
+                ) : isSubmitting ? (
+                  'กำลังบันทึกข้อมูล...'
+                ) : (
+                  <>
+                    ยืนยันการลงทะเบียนสมัคร
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
 
