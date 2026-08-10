@@ -215,7 +215,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
       fontWeight: string,
       maxAvailableWidth: number = canvas.width * 0.78
     ) => {
-      let size = Math.round(initialFontSize * 1.7);
+      let size = Math.round(initialFontSize * 2.0);
       ctx.font = getCanvasFont(fontWeight, size);
       let textWidth = ctx.measureText(text).width;
       while (textWidth > maxAvailableWidth && size > 14) {
@@ -366,11 +366,6 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
         try {
           pdf.save(`${fileName}.pdf`);
         } catch (saveErr) {
-          console.warn("pdf.save failed, using Blob URL fallback:", saveErr);
-          const blob = pdf.output('blob');
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
           a.download = `${fileName}.pdf`;
           document.body.appendChild(a);
           a.click();
@@ -536,7 +531,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                 className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap text-center"
                 style={{
                   top: `${previewCert.config?.positions?.studentName?.y || 42}%`,
-                  fontSize: `${(previewCert.config?.positions?.studentName?.fontSize || 34) * 1.7}px`,
+                  fontSize: `${(previewCert.config?.positions?.studentName?.fontSize || 34) * 2.0}px`,
                   color: previewCert.config?.positions?.studentName?.color || '#0c4a6e'
                 }}
               >
@@ -550,7 +545,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                 className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap text-center"
                 style={{
                   top: `${previewCert.config?.positions?.award?.y || 52}%`,
-                  fontSize: `${(previewCert.config?.positions?.award?.fontSize || 26) * 1.7}px`,
+                  fontSize: `${(previewCert.config?.positions?.award?.fontSize || 26) * 2.0}px`,
                   color: previewCert.config?.positions?.award?.color || '#b45309'
                 }}
               >
@@ -564,7 +559,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                 className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-bold whitespace-nowrap text-center"
                 style={{
                   top: `${previewCert.config?.positions?.activityName?.y || 60}%`,
-                  fontSize: `${(previewCert.config?.positions?.activityName?.fontSize || 22) * 1.7}px`,
+                  fontSize: `${(previewCert.config?.positions?.activityName?.fontSize || 22) * 2.0}px`,
                   color: previewCert.config?.positions?.activityName?.color || '#334155'
                 }}
               >
@@ -579,7 +574,7 @@ export const CertificateSearch: React.FC<CertificateSearchProps> = ({
                 style={{
                   left: `${previewCert.config?.positions?.certId?.x || 75}%`,
                   top: `${previewCert.config?.positions?.certId?.y || 88}%`,
-                  fontSize: `${(previewCert.config?.positions?.certId?.fontSize || 14) * 1.8}px`,
+                  fontSize: `${(previewCert.config?.positions?.certId?.fontSize || 14) * 2.0}px`,
                   color: previewCert.config?.positions?.certId?.color || '#64748b',
                   fontFamily: previewCert.config?.fontFamily ? `"${previewCert.config.fontFamily}", Sarabun, sans-serif` : 'Sarabun, sans-serif'
                 }}

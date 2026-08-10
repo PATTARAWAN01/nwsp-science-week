@@ -512,7 +512,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
 
           <div className="glass-panel p-4 rounded-3xl border border-white/80 shadow-xl overflow-hidden">
             <div
-              className={`w-full aspect-[1.414/1] bg-white relative rounded-2xl overflow-hidden shadow-inner border border-slate-200 ${getFontClass()}`}
+              className={`w-full aspect-[1.414/1] bg-white relative rounded-2xl overflow-hidden shadow-inner border border-slate-200 [container-type:inline-size] ${getFontClass()}`}
               style={{
                 fontFamily: `"${certificateFont}", Sarabun, sans-serif`,
                 backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : 'radial-gradient(circle at 50% 50%, #ffffff 0%, #f0f9ff 100%)',
@@ -531,7 +531,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                   style={{
                     left: `${positions.studentName.x}%`,
                     top: `${positions.studentName.y}%`,
-                    fontSize: `${positions.studentName.fontSize * 0.5}px`,
+                    fontSize: `${(positions.studentName.fontSize / 800) * 100}cqw`,
                     color: positions.studentName.color
                   }}
                 >
@@ -546,7 +546,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                   style={{
                     left: `${positions.award.x}%`,
                     top: `${positions.award.y}%`,
-                    fontSize: `${positions.award.fontSize * 0.5}px`,
+                    fontSize: `${(positions.award.fontSize / 800) * 100}cqw`,
                     color: positions.award.color
                   }}
                 >
@@ -561,7 +561,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                   style={{
                     left: `${positions.activityName.x}%`,
                     top: `${positions.activityName.y}%`,
-                    fontSize: `${positions.activityName.fontSize * 0.5}px`,
+                    fontSize: `${(positions.activityName.fontSize / 800) * 100}cqw`,
                     color: positions.activityName.color
                   }}
                 >
@@ -576,7 +576,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                   style={{
                     left: `${positions.certId.x}%`,
                     top: `${positions.certId.y}%`,
-                    fontSize: `${positions.certId.fontSize * 0.5}px`,
+                    fontSize: `${(positions.certId.fontSize / 800) * 100}cqw`,
                     color: positions.certId.color
                   }}
                 >

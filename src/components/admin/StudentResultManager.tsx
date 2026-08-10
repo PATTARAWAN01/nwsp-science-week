@@ -357,7 +357,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
       fontWeight: string,
       maxAvailableWidth: number = canvas.width * 0.85
     ) => {
-      let size = Math.round(initialFontSize * 1.7);
+      let size = Math.round(initialFontSize * 2.0);
       ctx.font = getCanvasFont(fontWeight, size);
       let textWidth = ctx.measureText(text).width;
       while (textWidth > maxAvailableWidth && size > 16) {
@@ -393,7 +393,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     // 4. Certificate ID
     if (config?.visibleElements?.certId ?? true) {
       const pos = config?.positions?.certId || { x: 75, y: 88, fontSize: 14, color: '#64748b', fontWeight: 'normal' };
-      const scaledSize = Math.round(pos.fontSize * 1.6);
+      const scaledSize = Math.round(pos.fontSize * 2.0);
       ctx.font = getCanvasFont(pos.fontWeight || 'normal', scaledSize);
       ctx.fillStyle = pos.color || '#64748b';
       ctx.textAlign = 'center';
@@ -589,7 +589,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
               {batchItem && (
                 <div
                   ref={batchPrintRef}
-                  className={`w-full max-w-[700px] aspect-[1.414/1] bg-white relative rounded-xl overflow-hidden shadow-md text-slate-900 select-none ${getFontClass(batchCertConfig?.fontFamily)}`}
+                  className={`w-full max-w-[700px] aspect-[1.414/1] bg-white relative rounded-xl overflow-hidden shadow-md text-slate-900 select-none [container-type:inline-size] ${getFontClass(batchCertConfig?.fontFamily)}`}
                   style={{
                     backgroundImage: batchCertConfig?.bgImageUrl 
                       ? `url(${batchCertConfig.bgImageUrl})` 
@@ -625,12 +625,12 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                       style={batchCertConfig?.positions?.studentName ? {
                         left: `${batchCertConfig.positions.studentName.x}%`,
                         top: `${batchCertConfig.positions.studentName.y}%`,
-                        fontSize: `${batchCertConfig.positions.studentName.fontSize * 0.45}px`,
+                        fontSize: `${(batchCertConfig.positions.studentName.fontSize / 800) * 100}cqw`,
                         color: batchCertConfig.positions.studentName.color
                       } : {
                         left: '50%',
                         top: '42%',
-                        fontSize: '18px',
+                        fontSize: '4.25cqw',
                         color: '#0c4a6e'
                       }}
                     >
@@ -645,12 +645,12 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                       style={batchCertConfig?.positions?.award ? {
                         left: `${batchCertConfig.positions.award.x}%`,
                         top: `${batchCertConfig.positions.award.y}%`,
-                        fontSize: `${batchCertConfig.positions.award.fontSize * 0.45}px`,
+                        fontSize: `${(batchCertConfig.positions.award.fontSize / 800) * 100}cqw`,
                         color: batchCertConfig.positions.award.color
                       } : {
                         left: '50%',
                         top: '52%',
-                        fontSize: '14px',
+                        fontSize: '3.25cqw',
                         color: '#b45309'
                       }}
                     >
@@ -665,7 +665,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                       style={batchCertConfig?.positions?.activityName ? {
                         left: `${batchCertConfig.positions.activityName.x}%`,
                         top: `${batchCertConfig.positions.activityName.y}%`,
-                        fontSize: `${batchCertConfig.positions.activityName.fontSize * 0.45}px`,
+                        fontSize: `${(batchCertConfig.positions.activityName.fontSize / 800) * 100}cqw`,
                         color: batchCertConfig.positions.activityName.color
                       } : {
                         left: '50%',
@@ -685,12 +685,12 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                       style={batchCertConfig?.positions?.certId ? {
                         left: `${batchCertConfig.positions.certId.x}%`,
                         top: `${batchCertConfig.positions.certId.y}%`,
-                        fontSize: `${batchCertConfig.positions.certId.fontSize * 0.45}px`,
+                        fontSize: `${(batchCertConfig.positions.certId.fontSize / 800) * 100}cqw`,
                         color: batchCertConfig.positions.certId.color
                       } : {
                         left: '75%',
                         top: '88%',
-                        fontSize: '9px',
+                        fontSize: '1.75cqw',
                         color: '#64748b'
                       }}
                     >
