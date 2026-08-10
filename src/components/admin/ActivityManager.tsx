@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Activity, LevelCategory } from '../../types';
-import { saveActivity, deleteActivity, setAcademicYear } from '../../services/storage';
+import { saveActivity, deleteActivity, reorderActivities, setAcademicYear } from '../../services/storage';
 import { 
   Plus, 
   Edit3, 
@@ -18,7 +18,8 @@ import {
   RefreshCw,
   Power,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  GripVertical
 } from 'lucide-react';
 
 interface ActivityManagerProps {
@@ -58,13 +59,66 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
   const [seniorLocation, setSeniorLocation] = useState('');
 
   const [isOpen, setIsOpen] = useState(true);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // 1-Click Instant Open/Close Registration Toggle Handler
+  // Drag & Drop Activity Card Handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+    const reordered = [...activities];
+    const [movedItem] = reordered.splice(draggedIndex, 1);
+    reordered.splice(dropIndex, 0, movedItem);
+
+    setDraggedIndex(null);
+    await reorderActivities(reordered);
+    onRefresh();
+  };
+
+  // 1-Click Instant Open/Close Master Registration Toggle Handler
   const handleToggleStatus = async (act: Activity) => {
     const updatedActivity: Activity = {
       ...act,
-      isOpen: !act.isOpen
+      isOpen: !act.isOpen,
+      closedLevels: !act.isOpen ? [] : act.levels // If closing master, close all levels. If opening, clear closedLevels.
     };
+    await saveActivity(updatedActivity);
+    onRefresh();
+  };
+
+  // 1-Click Independent Level Open/Close Toggle Handler (ม.ต้น / ม.ปลาย)
+  const handleToggleLevelStatus = async (act: Activity, targetLevel: LevelCategory) => {
+    const currentClosed = act.closedLevels || [];
+    const isLevelClosed = currentClosed.includes(targetLevel) || !act.isOpen;
+
+    let updatedClosed: LevelCategory[];
+    if (isLevelClosed) {
+      // Re-open this level
+      updatedClosed = currentClosed.filter(l => l !== targetLevel);
+    } else {
+      // Close this level
+      updatedClosed = Array.from(new Set([...currentClosed, targetLevel]));
+    }
+
+    // Check if ALL levels supported by this activity are now closed
+    const allClosed = act.levels.every(l => updatedClosed.includes(l));
+
+    const updatedActivity: Activity = {
+      ...act,
+      isOpen: !allClosed,
+      closedLevels: updatedClosed
+    };
+
     await saveActivity(updatedActivity);
     onRefresh();
   };
@@ -240,10 +294,24 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
       {/* Activities Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {activities.map((act, idx) => (
-          <div key={act.id} className="glass-card p-6 rounded-3xl border border-white/80 flex flex-col justify-between space-y-4">
+          <div 
+            key={act.id} 
+            draggable
+            onDragStart={(e) => handleDragStart(e, idx)}
+            onDragOver={(e) => handleDragOver(e, idx)}
+            onDrop={(e) => handleDrop(e, idx)}
+            className={`glass-card p-6 rounded-3xl border transition-all duration-200 flex flex-col justify-between space-y-4 ${
+              draggedIndex === idx 
+                ? 'opacity-40 border-purple-400 border-dashed scale-95 shadow-none' 
+                : 'border-white/80 hover:border-purple-200 shadow-sm'
+            }`}
+          >
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
+                  <span className="p-1 rounded-lg hover:bg-slate-100 cursor-grab active:cursor-grabbing text-slate-400 hover:text-purple-600 transition-colors" title="ลากเพื่อสลับลำดับการ์ดกิจกรรม">
+                    <GripVertical className="w-4 h-4" />
+                  </span>
                   <span className="w-6 h-6 rounded-full bg-slate-800 text-white font-extrabold text-xs flex items-center justify-center">
                     {idx + 1}
                   </span>
@@ -261,14 +329,44 @@ export const ActivityManager: React.FC<ActivityManagerProps> = ({
                       ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200'
                       : 'bg-rose-100 text-rose-900 border-rose-300 hover:bg-rose-200'
                   }`}
-                  title="คลิกเพื่อเปิดหรือปิดการรับสมัครกิจกรรมนี้ทันที"
+                  title="คลิกเพื่อเปิดหรือปิดการรับสมัครทุกระดับของกิจกรรมนี้ทันที"
                 >
                   <span className={`w-2.5 h-2.5 rounded-full ${act.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                  {act.isOpen ? '🟢 เปิดรับสมัคร (กดเพื่อปิด)' : '🔴 ปิดรับสมัคร (กดเพื่อเปิด)'}
+                  {act.isOpen ? '🟢 เปิดทุกระดับ' : '🔴 ปิดทุกระดับ'}
                 </button>
               </div>
 
               <h3 className="font-bold text-lg text-slate-800">{act.title}</h3>
+
+              {/* Independent Level Status Toggles (ม.ต้น / ม.ปลาย) */}
+              <div className="bg-slate-50/90 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+                  <span>สถานะเปิด-ปิดรับสมัครแยกตามระดับ:</span>
+                  <span className="text-[10px] text-slate-400 font-normal">(คลิกปุ่มเพื่อสลับสถานะ)</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {act.levels.map((lvl) => {
+                    const isClosed = (act.closedLevels || []).includes(lvl) || !act.isOpen;
+                    return (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => handleToggleLevelStatus(act, lvl)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 border shadow-2xs transition-all ${
+                          isClosed
+                            ? 'bg-rose-100 text-rose-900 border-rose-300 hover:bg-rose-200'
+                            : 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200'
+                        }`}
+                        title={`คลิกเพื่อสลับสถานะเปิด-ปิดรับสมัครเฉพาะระดับ ${lvl}`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isClosed ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+                        <span>{lvl}:</span>
+                        <span>{isClosed ? '🔴 ปิดรับสมัคร' : '🟢 เปิดรับสมัคร'}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               {act.teachers && act.teachers.length > 0 && (
                 <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl">

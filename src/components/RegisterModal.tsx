@@ -54,8 +54,12 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
     }
   }, [initialActivity, activities]);
 
-  // Filter activities matching chosen level
-  const availableActivities = activities.filter(act => act.levels.includes(level) && act.isOpen);
+  // Filter activities matching chosen level that are open for registration for this specific level
+  const availableActivities = activities.filter(act => 
+    act.levels.includes(level) && 
+    act.isOpen && 
+    !(act.closedLevels || []).includes(level)
+  );
   const currentActivity = activities.find(act => act.id === selectedActivityId) || availableActivities[0];
 
   // Adjust member list count based on teamSize & sanitize grade when level changes

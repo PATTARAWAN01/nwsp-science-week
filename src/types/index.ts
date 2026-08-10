@@ -30,6 +30,7 @@ export interface Activity {
     general?: ScheduleInfo;
   };
   isOpen: boolean;
+  closedLevels?: LevelCategory[]; // รายชื่อระดับชั้นที่ปิดรับสมัครแยกต่างหาก (e.g. ['ม.ต้น'])
   createdAt: string;
 }
 

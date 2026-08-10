@@ -275,6 +275,30 @@ export const saveActivity = async (activity: Activity): Promise<void> => {
   }
 };
 
+export const reorderActivities = async (orderedActivities: Activity[]): Promise<void> => {
+  const updatedList = orderedActivities.map((act, index) => ({
+    ...act,
+    order: index + 1
+  }));
+
+  const existingLocal = getLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, []);
+  const otherYearActivities = existingLocal.filter(a => !updatedList.some(u => u.id === a.id));
+  const fullUpdatedList = [...updatedList, ...otherYearActivities];
+  setLocal(STORAGE_KEYS.ACTIVITIES, fullUpdatedList);
+
+  if (isFirebaseConfigured() && db) {
+    try {
+      const batchPromises = updatedList.map(act => {
+        const cleanData = cleanForFirestore(act);
+        return setDoc(doc(db, 'activities', act.id), cleanData);
+      });
+      await Promise.all(batchPromises);
+    } catch (err) {
+      console.error("Firestore reorder activities failed:", err);
+    }
+  }
+};
+
 export const deleteActivity = async (id: string): Promise<void> => {
   const list = getLocal<Activity[]>(STORAGE_KEYS.ACTIVITIES, INITIAL_ACTIVITIES);
   const updated = list.filter(a => a.id !== id);

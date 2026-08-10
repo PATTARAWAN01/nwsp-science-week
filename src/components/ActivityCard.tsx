@@ -99,6 +99,8 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 }) => {
   const theme = CARD_THEMES[index % CARD_THEMES.length];
 
+  const isAllClosed = !activity.isOpen || (activity.levels && activity.levels.length > 0 && activity.levels.every(l => (activity.closedLevels || []).includes(l)));
+
   return (
     <div className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden group backdrop-blur-md border shadow-lg transition-all duration-300 hover:-translate-y-1.5 ${theme.cardBg}`}>
       
@@ -120,30 +122,28 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 ประเภทเดี่ยว (1 คน)
               </span>
             )}
-
-            {/* Level Checkboxes */}
-            <div className="flex items-center gap-1">
-              {activity.levels.map((lvl) => (
-                <span 
-                  key={lvl} 
-                  className={`px-2.5 py-0.5 rounded-md text-xs font-bold ${
-                    lvl === 'ม.ต้น' 
-                      ? 'bg-sky-200/80 text-sky-900 border border-sky-300' 
-                      : 'bg-purple-200/80 text-purple-900 border border-purple-300'
-                  }`}
-                >
-                  {lvl}
-                </span>
-              ))}
-            </div>
           </div>
 
-          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-            activity.isOpen ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-300' : 'bg-rose-100/90 text-rose-800 border border-rose-300'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${activity.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-            {activity.isOpen ? 'เปิดรับสมัคร' : 'ปิดรับสมัคร'}
-          </span>
+          {/* Independent Level Status Badges (ม.ต้น / ม.ปลาย) */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {activity.levels.map((lvl) => {
+              const isLevelClosed = (activity.closedLevels || []).includes(lvl) || !activity.isOpen;
+              return (
+                <span 
+                  key={lvl} 
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border transition-all ${
+                    isLevelClosed
+                      ? 'bg-rose-100/90 text-rose-800 border-rose-300'
+                      : 'bg-emerald-100/90 text-emerald-800 border-emerald-300'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isLevelClosed ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+                  <span>{lvl}:</span>
+                  <span>{isLevelClosed ? 'ปิดรับสมัคร' : 'เปิดรับสมัคร'}</span>
+                </span>
+              );
+            })}
+          </div>
         </div>
 
         {/* Title */}
@@ -223,15 +223,15 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
       {/* Action Button */}
       <button
         onClick={() => onRegister(activity)}
-        disabled={!activity.isOpen}
+        disabled={isAllClosed}
         className={`w-full py-3.5 px-5 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all duration-200 ${
-          activity.isOpen
+          !isAllClosed
             ? `${theme.btnBg} hover:scale-[1.01] active:scale-[0.99]`
             : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
         }`}
       >
         <Sparkles className="w-4 h-4" />
-        {activity.isOpen ? 'สมัครแข่งขัน' : 'ปิดรับสมัครแล้ว'}
+        {!isAllClosed ? 'สมัครแข่งขัน' : 'ปิดรับสมัครแล้ว'}
       </button>
     </div>
   );
