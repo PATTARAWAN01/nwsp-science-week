@@ -572,7 +572,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
               {/* Certificate ID */}
               {visibleElements.certId && (
                 <div
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 font-mono whitespace-nowrap transition-all"
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap transition-all"
                   style={{
                     left: `${positions.certId.x}%`,
                     top: `${positions.certId.y}%`,
@@ -580,7 +580,7 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                     color: positions.certId.color
                   }}
                 >
-                  NWSP-{academicYear}-001 (รหัสเกียรติบัตร)
+                  เลขที่ 0001/{academicYear || '2569'}
                 </div>
               )}
 
