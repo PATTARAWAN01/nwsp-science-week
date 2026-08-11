@@ -337,25 +337,55 @@ export const getRegistrations = async (year?: string): Promise<Registration[]> =
 
   // 1. LocalStorage registrations
   const localList = getLocal<Registration[]>(STORAGE_KEYS.REGISTRATIONS, []);
-  localList.filter(r => r.academicYear === targetYear).forEach(r => regMap.set(r.id, sanitizeRegistrationGrade(r)));
+  localList.forEach(r => {
+    const regYear = r.academicYear || targetYear;
+    if (regYear === targetYear) {
+      regMap.set(r.id, sanitizeRegistrationGrade({ ...r, academicYear: regYear }));
+    }
+  });
 
-  // 2. Cloud Firestore registrations
+  // 2. Cloud Firestore registrations (with fallback query for older docs missing academicYear)
   if (isFirebaseConfigured() && db) {
     try {
       const q = query(collection(db, 'registrations'), where('academicYear', '==', targetYear));
-      const querySnapshot = await fetchWithTimeout(getDocs(q), 2500);
+      let querySnapshot = await fetchWithTimeout(getDocs(q), 6000);
+      
+      if (querySnapshot.empty) {
+        querySnapshot = await fetchWithTimeout(getDocs(collection(db, 'registrations')), 6000);
+      }
+
       querySnapshot.forEach((docSnap) => {
         const cloudReg = docSnap.data() as Registration;
         if (cloudReg && cloudReg.id) {
-          regMap.set(cloudReg.id, sanitizeRegistrationGrade(cloudReg));
+          const regYear = cloudReg.academicYear || targetYear;
+          if (regYear === targetYear) {
+            regMap.set(cloudReg.id, sanitizeRegistrationGrade({ ...cloudReg, academicYear: regYear }));
+          }
         }
       });
     } catch (err) {
       console.warn("Firestore fetch registrations warning:", err);
+      try {
+        const fallbackSnap = await getDocs(collection(db, 'registrations'));
+        fallbackSnap.forEach((docSnap) => {
+          const cloudReg = docSnap.data() as Registration;
+          if (cloudReg && cloudReg.id) {
+            const regYear = cloudReg.academicYear || targetYear;
+            if (regYear === targetYear) {
+              regMap.set(cloudReg.id, sanitizeRegistrationGrade({ ...cloudReg, academicYear: regYear }));
+            }
+          }
+        });
+      } catch (retryErr) {
+        console.error("Firestore retry fetch registrations failed:", retryErr);
+      }
     }
   }
 
   const merged = Array.from(regMap.values());
+  if (merged.length > 0) {
+    setLocal(STORAGE_KEYS.REGISTRATIONS, merged);
+  }
   return merged;
 };
 
@@ -400,25 +430,55 @@ export const getResults = async (year?: string): Promise<CompetitionResult[]> =>
 
   // 1. LocalStorage results
   const localList = getLocal<CompetitionResult[]>(STORAGE_KEYS.RESULTS, []);
-  localList.filter(r => r.academicYear === targetYear).forEach(r => resMap.set(r.id, r));
+  localList.forEach(r => {
+    const resYear = r.academicYear || targetYear;
+    if (resYear === targetYear) {
+      resMap.set(r.id, { ...r, academicYear: resYear });
+    }
+  });
 
   // 2. Cloud Firestore results
   if (isFirebaseConfigured() && db) {
     try {
       const q = query(collection(db, 'results'), where('academicYear', '==', targetYear));
-      const querySnapshot = await fetchWithTimeout(getDocs(q), 2500);
+      let querySnapshot = await fetchWithTimeout(getDocs(q), 6000);
+
+      if (querySnapshot.empty) {
+        querySnapshot = await fetchWithTimeout(getDocs(collection(db, 'results')), 6000);
+      }
+
       querySnapshot.forEach((docSnap) => {
         const cloudRes = docSnap.data() as CompetitionResult;
         if (cloudRes && cloudRes.id) {
-          resMap.set(cloudRes.id, cloudRes);
+          const resYear = cloudRes.academicYear || targetYear;
+          if (resYear === targetYear) {
+            resMap.set(cloudRes.id, { ...cloudRes, academicYear: resYear });
+          }
         }
       });
     } catch (err) {
       console.warn("Firestore fetch results warning:", err);
+      try {
+        const fallbackSnap = await getDocs(collection(db, 'results'));
+        fallbackSnap.forEach((docSnap) => {
+          const cloudRes = docSnap.data() as CompetitionResult;
+          if (cloudRes && cloudRes.id) {
+            const resYear = cloudRes.academicYear || targetYear;
+            if (resYear === targetYear) {
+              resMap.set(cloudRes.id, { ...cloudRes, academicYear: resYear });
+            }
+          }
+        });
+      } catch (retryErr) {
+        console.error("Firestore retry fetch results failed:", retryErr);
+      }
     }
   }
 
   const merged = Array.from(resMap.values());
+  if (merged.length > 0) {
+    setLocal(STORAGE_KEYS.RESULTS, merged);
+  }
   return merged;
 };
 
