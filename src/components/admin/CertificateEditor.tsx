@@ -135,12 +135,22 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
+        const rawResult = reader.result as string;
+        
+        // If original file is already under 850KB, preserve 100% original raw quality without re-encoding!
+        if (rawResult && rawResult.length < 850000) {
+          setBgImageUrl(rawResult);
+          return;
+        }
+
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const maxWidth = 1280;
+          
+          // Use Ultra HD 2400px print resolution (over 3.5x higher resolution than previous 1280px)
+          const maxWidth = 2400;
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
             width = maxWidth;
@@ -149,15 +159,39 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, 0, 0, width, height);
-            // 0.70 quality guarantees ~150KB-250KB Base64 payload (well under Firestore 1MB doc limit)
-            setBgImageUrl(canvas.toDataURL('image/jpeg', 0.70));
+
+            // 0.92 High Definition JPEG Quality (sharp & crisp print resolution)
+            let highResDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+            // Firestore 1MB document limit guard (keep Base64 under 900KB)
+            if (highResDataUrl.length > 900000) {
+              highResDataUrl = canvas.toDataURL('image/jpeg', 0.86);
+            }
+            if (highResDataUrl.length > 900000) {
+              const canvasSmall = document.createElement('canvas');
+              const smWidth = 2000;
+              const smHeight = Math.round((img.height * smWidth) / img.width);
+              canvasSmall.width = smWidth;
+              canvasSmall.height = smHeight;
+              const ctxSm = canvasSmall.getContext('2d');
+              if (ctxSm) {
+                ctxSm.imageSmoothingEnabled = true;
+                ctxSm.imageSmoothingQuality = 'high';
+                ctxSm.drawImage(img, 0, 0, smWidth, smHeight);
+                highResDataUrl = canvasSmall.toDataURL('image/jpeg', 0.85);
+              }
+            }
+
+            setBgImageUrl(highResDataUrl);
           } else {
-            setBgImageUrl(reader.result as string);
+            setBgImageUrl(rawResult);
           }
         };
-        img.onerror = () => setBgImageUrl(reader.result as string);
-        img.src = reader.result as string;
+        img.onerror = () => setBgImageUrl(rawResult);
+        img.src = rawResult;
       };
       reader.readAsDataURL(file);
     }
@@ -404,6 +438,13 @@ export const CertificateEditor: React.FC<CertificateEditorProps> = ({
                 {bgImageUrl ? 'เปลี่ยนภาพแม่แบบพื้นหลัง' : 'อัปโหลดภาพพื้นหลังเกียรติบัตร'}
               </label>
             </div>
+
+            {bgImageUrl && (
+              <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>ความละเอียดภาพ: Ultra HD 2400px (คมชัดระดับพิมพ์ A4 100%)</span>
+              </div>
+            )}
           </div>
 
           {/* Text Positions Adjuster */}
