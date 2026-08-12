@@ -28,7 +28,8 @@ import {
   RefreshCw,
   Printer,
   Download,
-  Loader2
+  Loader2,
+  Filter
 } from 'lucide-react';
 
 interface StudentResultManagerProps {
@@ -53,6 +54,10 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
   const [activeTab, setActiveTab] = useState<'applicants' | 'recordResults'>('applicants');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Filters for Tab 1.2.1 Applicants Management
+  const [applicantFilterActivityId, setApplicantFilterActivityId] = useState<string>('all');
+  const [applicantFilterLevel, setApplicantFilterLevel] = useState<string>('all');
 
   // Result Recording Filters
   const [selectedActivityId, setSelectedActivityId] = useState<string>(safeActivities[0]?.id || '');
@@ -92,16 +97,20 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
   const [certIdInput, setCertIdInput] = useState<string>('');
   const [scoreInput, setScoreInput] = useState<string>('');
 
-  // Filter registrations for current year
+  // Filter registrations for current year & selected filters in Tab 1.2.1
   const filteredRegs = safeRegistrations.filter(r => {
     if (!r) return false;
     const matchesYear = r.academicYear === academicYear;
+    const matchesActivity = applicantFilterActivityId === 'all' || r.activityId === applicantFilterActivityId;
+    const matchesLevel = applicantFilterLevel === 'all' || r.level === applicantFilterLevel;
+
     const searchClean = searchTerm.trim().toLowerCase();
     const matchesSearch = !searchClean || 
       (r.activityTitle && r.activityTitle.toLowerCase().includes(searchClean)) ||
       (r.teamName && r.teamName.toLowerCase().includes(searchClean)) ||
       (r.members && r.members.some(m => m && (m.fullName?.toLowerCase().includes(searchClean) || m.studentId?.includes(searchClean))));
-    return matchesYear && matchesSearch;
+
+    return matchesYear && matchesActivity && matchesLevel && matchesSearch;
   });
 
   // Filter registrations for Award Recording tab
@@ -768,8 +777,98 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
       {/* TAB 1: Applicants Management */}
       {activeTab === 'applicants' && (
         <div className="space-y-4">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
-            ข้อมูลรายชื่อผู้สมัครเข้าร่วมแข่งขันทั้งหมดในปีการศึกษา {academicYear}
+          
+          {/* Filter Bar for Tab 1.2.1 */}
+          <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-white/80 space-y-3 bg-gradient-to-r from-sky-50/80 via-indigo-50/50 to-white/90 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/60 pb-2.5">
+              <div className="flex items-center gap-2 text-xs font-extrabold text-slate-800">
+                <Filter className="w-4 h-4 text-sky-600" />
+                <span>ตัวกรองข้อมูลผู้สมัคร (ค้นหาตามกิจกรรม / ระดับชั้น / ชื่อนักเรียน):</span>
+              </div>
+
+              {(applicantFilterActivityId !== 'all' || applicantFilterLevel !== 'all' || searchTerm.trim() !== '') && (
+                <button
+                  onClick={() => {
+                    setApplicantFilterActivityId('all');
+                    setApplicantFilterLevel('all');
+                    setSearchTerm('');
+                  }}
+                  className="text-xs font-bold text-rose-600 hover:text-rose-800 underline flex items-center gap-1 self-end md:self-auto"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  ล้างตัวกรองทั้งหมด
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* 1. Filter Activity */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  1. เลือกกิจกรรมการแข่งขัน:
+                </label>
+                <select
+                  value={applicantFilterActivityId}
+                  onChange={(e) => setApplicantFilterActivityId(e.target.value)}
+                  className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 border-slate-300 bg-white/90 shadow-2xs"
+                >
+                  <option value="all">-- แสดงทุกกิจกรรม ({safeRegistrations.filter(r => r.academicYear === academicYear).length} รายการ) --</option>
+                  {safeActivities.map((act) => {
+                    const count = safeRegistrations.filter(r => r.academicYear === academicYear && r.activityId === act.id).length;
+                    return (
+                      <option key={act.id} value={act.id}>
+                        {act.title} ({count} รายการ)
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* 2. Filter Level */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  2. เลือกระดับชั้น:
+                </label>
+                <select
+                  value={applicantFilterLevel}
+                  onChange={(e) => setApplicantFilterLevel(e.target.value)}
+                  className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 border-slate-300 bg-white/90 shadow-2xs"
+                >
+                  <option value="all">-- แสดงทุกระดับชั้น (ม.ต้น & ม.ปลาย) --</option>
+                  <option value="ม.ต้น">มัธยมศึกษาตอนต้น (ม.ต้น)</option>
+                  <option value="ม.ปลาย">มัธยมศึกษาตอนปลาย (ม.ปลาย)</option>
+                </select>
+              </div>
+
+              {/* 3. Search Box */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  3. ค้นหาชื่อนักเรียน / รหัส / ชื่อทีม:
+                </label>
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="พิมพ์ชื่อนักเรียน, รหัส 5 หลัก..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full glass-input pl-8 pr-8 py-2 rounded-xl text-xs font-bold text-slate-800 border-slate-300 bg-white/90 shadow-2xs"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-xs font-bold text-slate-600 uppercase tracking-wider px-1 flex items-center justify-between">
+            <span>แสดงผลผู้สมัคร {filteredRegs.length} จากทั้งหมด {safeRegistrations.filter(r => r.academicYear === academicYear).length} รายการ</span>
           </div>
 
           {filteredRegs.length === 0 ? (
