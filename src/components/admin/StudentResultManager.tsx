@@ -578,44 +578,42 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
       academicYear: string;
     }[] = [];
 
-    // Check if results exist for this activity & level
-    const activityResults = results.filter(
-      r => r.academicYear === academicYear && r.activityId === selectedActivityId && r.level === selectedLevel
-    );
+    // Iterate strictly through activityRegistrations sorted by team rank order (1, 2, 3...)
+    let fallbackSeq = certSeqConfig.startingNumber;
 
-    if (activityResults.length > 0) {
-      activityResults.forEach(res => {
-        if (res && Array.isArray(res.members)) {
-          res.members.forEach((m, memberIdx) => {
-            if (!m) return;
-            const studentCertId = getStudentUniqueCertId(res.certificateId, memberIdx);
-            studentsToExport.push({
-              studentName: `${m.title || ''}${m.fullName || ''}`,
-              award: res.award,
-              activityTitle: res.activityTitle,
-              level: res.level,
-              certificateId: studentCertId || `NWSP-${academicYear}-${res.id.slice(0, 6).toUpperCase()}`,
-              academicYear: res.academicYear
-            });
-          });
-        }
-      });
-    } else if (activityRegistrations.length > 0) {
-      // If no awards logged yet, export participant certs for all registered applicants
-      let seq = certSeqConfig.startingNumber;
-      activityRegistrations.forEach(reg => {
-        reg.members.forEach(m => {
+    activityRegistrations.forEach(reg => {
+      if (!reg || !Array.isArray(reg.members)) return;
+
+      const existingRes = results.find(
+        r => r.registrationId === reg.id && r.academicYear === academicYear
+      );
+
+      reg.members.forEach((m, memberIdx) => {
+        if (!m) return;
+
+        if (existingRes) {
+          const studentCertId = getStudentUniqueCertId(existingRes.certificateId, memberIdx);
           studentsToExport.push({
-            studentName: `${m.title}${m.fullName}`,
+            studentName: `${m.title || ''}${m.fullName || ''}`,
+            award: existingRes.award,
+            activityTitle: existingRes.activityTitle || reg.activityTitle,
+            level: existingRes.level || reg.level,
+            certificateId: studentCertId || `NWSP-${academicYear}-${existingRes.id.slice(0, 6).toUpperCase()}`,
+            academicYear: existingRes.academicYear || reg.academicYear
+          });
+        } else {
+          // If result not recorded yet for this team, output as Participant
+          studentsToExport.push({
+            studentName: `${m.title || ''}${m.fullName || ''}`,
             award: 'เข้าร่วมการแข่งขัน',
             activityTitle: reg.activityTitle,
             level: reg.level,
-            certificateId: `${certSeqConfig.prefix}${seq++}${certSeqConfig.suffix}`,
+            certificateId: `${certSeqConfig.prefix}${fallbackSeq++}${certSeqConfig.suffix}`,
             academicYear: reg.academicYear
           });
-        });
+        }
       });
-    }
+    });
 
     if (studentsToExport.length === 0) {
       alert("ไม่มีรายชื่อผู้สมัครหรือผู้ได้รับรางวัลในกิจกรรมและระดับชั้นนี้");
