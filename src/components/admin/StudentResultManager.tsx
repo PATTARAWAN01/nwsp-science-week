@@ -29,7 +29,11 @@ import {
   Printer,
   Download,
   Loader2,
-  Filter
+  Filter,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
+  UserMinus
 } from 'lucide-react';
 
 interface StudentResultManagerProps {
@@ -113,10 +117,85 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     return matchesYear && matchesActivity && matchesLevel && matchesSearch;
   });
 
-  // Filter registrations for Award Recording tab
-  const activityRegistrations = safeRegistrations.filter(r => 
-    r && r.academicYear === academicYear && r.activityId === selectedActivityId && r.level === selectedLevel
-  );
+  // Filter registrations for Award Recording tab sorted by explicit order
+  const activityRegistrations = safeRegistrations
+    .filter(r => r && r.academicYear === academicYear && r.activityId === selectedActivityId && r.level === selectedLevel)
+    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
+  const [draggedTeamIndex, setDraggedTeamIndex] = useState<number | null>(null);
+
+  // Tab 1.2.2 Team Card Reordering Handlers
+  const handleMoveTeamOrder = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= activityRegistrations.length) return;
+
+    const currentReg = activityRegistrations[index];
+    const targetReg = activityRegistrations[targetIndex];
+
+    const currentOrder = currentReg.order ?? (index + 1);
+    const targetOrder = targetReg.order ?? (targetIndex + 1);
+
+    const updatedCurrent: Registration = { ...currentReg, order: targetOrder };
+    const updatedTarget: Registration = { ...targetReg, order: currentOrder };
+
+    await saveRegistration(updatedCurrent);
+    await saveRegistration(updatedTarget);
+    onRefresh();
+  };
+
+  const handleDragTeamStart = (e: React.DragEvent, index: number) => {
+    setDraggedTeamIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragTeamOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDropTeam = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedTeamIndex === null || draggedTeamIndex === dropIndex) return;
+
+    const reordered = [...activityRegistrations];
+    const [movedItem] = reordered.splice(draggedTeamIndex, 1);
+    reordered.splice(dropIndex, 0, movedItem);
+
+    setDraggedTeamIndex(null);
+
+    for (let i = 0; i < reordered.length; i++) {
+      const item = { ...reordered[i], order: i + 1 };
+      await saveRegistration(item);
+    }
+    onRefresh();
+  };
+
+  // 1-Click Individual Student Removal Handler
+  const handleRemoveStudentFromTeam = async (reg: Registration, studentIndex: number, studentName: string) => {
+    if (!reg || !reg.members || reg.members.length <= 1) {
+      alert("ไม่สามารถลบได้ เนื่องจากทีมต้องมีผู้สมัครอย่างน้อย 1 คน");
+      return;
+    }
+    if (confirm(`คุณต้องการลบ "${studentName}" ออกจากทีมเนื่องจากไม่ได้มาเข้าร่วมใช่หรือไม่?\n\n(ระบบจะออกเกียรติบัตรเฉพาะนักเรียนที่เหลือ ${reg.members.length - 1} คนในทีม)`)) {
+      const updatedMembers = reg.members.filter((_, idx) => idx !== studentIndex);
+      const updatedReg: Registration = {
+        ...reg,
+        members: updatedMembers
+      };
+
+      const existingRes = safeResults.find(r => r.registrationId === reg.id && r.academicYear === academicYear);
+      if (existingRes) {
+        const updatedRes: CompetitionResult = {
+          ...existingRes,
+          members: updatedMembers
+        };
+        await saveResult(updatedRes);
+      }
+
+      await saveRegistration(updatedReg);
+      onRefresh();
+    }
+  };
 
   const handleDeleteReg = async (id: string) => {
     if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการสมัครนี้?")) {
@@ -133,11 +212,18 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     return `${prefix}${numStr}${suffix}`;
   };
 
-  const generateNextCertId = (seqIndex?: number) => {
-    const yearResults = safeResults.filter(r => r && r.academicYear === academicYear);
-    const idx = seqIndex !== undefined ? seqIndex : yearResults.length;
+  const generateNextCertId = (overrideMemberOffset?: number) => {
+    const yearResults = safeResults.filter(r => r && r.academicYear === academicYear && r.registrationId !== recordingReg?.id);
+    
+    // Sum total student members across all previously recorded team results in this year
+    const totalStudentsRecorded = yearResults.reduce((sum, r) => {
+      const count = (r.members && r.members.length > 0) ? r.members.length : 1;
+      return sum + count;
+    }, 0);
+
+    const memberOffset = overrideMemberOffset !== undefined ? overrideMemberOffset : totalStudentsRecorded;
     const startNum = certSeqConfig?.startingNumber || 1001;
-    return formatCertNum(startNum + idx);
+    return formatCertNum(startNum + memberOffset);
   };
 
   const handleOpenRecordAwardModal = (reg: Registration) => {
@@ -158,11 +244,16 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
   };
 
   const handleAutoGenerateClick = () => {
-    let seq = safeResults.filter(r => r && r.academicYear === academicYear).length;
-    let candidate = generateNextCertId(seq);
+    const yearResults = safeResults.filter(r => r && r.academicYear === academicYear && r.registrationId !== recordingReg?.id);
+    let totalStudents = yearResults.reduce((sum, r) => {
+      const count = (r.members && r.members.length > 0) ? r.members.length : 1;
+      return sum + count;
+    }, 0);
+
+    let candidate = generateNextCertId(totalStudents);
     while (safeResults.some(r => r && r.academicYear === academicYear && r.certificateId === candidate && r.registrationId !== recordingReg?.id)) {
-      seq++;
-      candidate = generateNextCertId(seq);
+      totalStudents++;
+      candidate = generateNextCertId(totalStudents);
     }
     setCertIdInput(candidate);
   };
@@ -913,10 +1004,22 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
                 {/* Members list */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  {reg.members.map((m, idx) => (
-                    <div key={idx} className="bg-white/80 p-2.5 rounded-xl border border-slate-200/80 text-xs space-y-0.5">
-                      <div className="font-bold text-slate-800">{m.title}{m.fullName}</div>
-                      <div className="text-slate-500">รหัส {m.studentId} • ชั้น {m.grade}/{m.room}</div>
+                  {reg.members.map((m, mIdx) => (
+                    <div key={mIdx} className="bg-white/80 p-2.5 rounded-xl border border-slate-200/80 text-xs flex items-center justify-between gap-2">
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <div className="font-bold text-slate-800 truncate">{m.title}{m.fullName}</div>
+                        <div className="text-slate-500">รหัส {m.studentId} • ชั้น {m.grade}/{m.room}</div>
+                      </div>
+                      {reg.members.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStudentFromTeam(reg, mIdx, `${m.title}${m.fullName}`)}
+                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                          title="ลบนักเรียนคนนี้ออกจากทีม (กรณีไม่ได้มาแข่งขัน)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1003,13 +1106,53 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                 ยังไม่มีทีมหรือผู้สมัครในกิจกรรมและระดับชั้นนี้
               </div>
             ) : (
-              activityRegistrations.map((reg) => {
+              activityRegistrations.map((reg, idx) => {
                 const existingResult = results.find(r => r.registrationId === reg.id && r.academicYear === academicYear);
 
                 return (
-                  <div key={reg.id} className="glass-card p-5 rounded-2xl border border-white/80 space-y-3">
+                  <div 
+                    key={reg.id} 
+                    draggable
+                    onDragStart={(e) => handleDragTeamStart(e, idx)}
+                    onDragOver={(e) => handleDragTeamOver(e, idx)}
+                    onDrop={(e) => handleDropTeam(e, idx)}
+                    className={`glass-card p-5 rounded-2xl border transition-all duration-200 space-y-3 ${
+                      draggedTeamIndex === idx 
+                        ? 'opacity-40 border-purple-400 border-dashed scale-95 shadow-none' 
+                        : 'border-white/80 hover:border-purple-200 shadow-sm'
+                    }`}
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                      <div>
+                      <div className="flex items-center gap-2">
+                        <span className="p-1 rounded-lg hover:bg-slate-100 cursor-grab active:cursor-grabbing text-slate-400 hover:text-purple-600 transition-colors" title="ลากเพื่อจัดอันดับการแสดงผลและออกเกียรติบัตรของทีมนี้">
+                          <GripVertical className="w-4 h-4" />
+                        </span>
+                        <span className="w-5 h-5 rounded-full bg-slate-800 text-white font-extrabold text-[11px] flex items-center justify-center">
+                          {idx + 1}
+                        </span>
+
+                        {/* Reorder Buttons (Arrow Up / Down) */}
+                        <div className="flex items-center gap-0.5 border-r border-slate-200 pr-2 mr-1">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveTeamOrder(idx, 'up')}
+                            className="p-1 bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800 disabled:opacity-30 rounded text-xs font-bold transition-colors"
+                            title="ขยับขึ้นอันดับบน"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === activityRegistrations.length - 1}
+                            onClick={() => handleMoveTeamOrder(idx, 'down')}
+                            className="p-1 bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800 disabled:opacity-30 rounded text-xs font-bold transition-colors"
+                            title="ขยับลงอันดับล่าง"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
                         {reg.teamName ? (
                           <span className="font-extrabold text-base text-slate-900">
                             ทีม: {reg.teamName}
@@ -1019,7 +1162,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                             {reg.members[0]?.fullName} (ผู้สมัครเดี่ยว)
                           </span>
                         )}
-                        <span className="text-xs text-slate-500 ml-2">
+                        <span className="text-xs text-slate-500 ml-1">
                           (สมาชิก {reg.members.length} คน)
                         </span>
                       </div>
@@ -1032,6 +1175,7 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                           <button
                             onClick={() => handleDeleteResult(existingResult.id)}
                             className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-bold"
+                            title="ลบผลการแข่งขัน"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1046,10 +1190,21 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                       )}
                     </div>
 
+                    {/* Member badges with 1-click delete student button */}
                     <div className="flex flex-wrap gap-2 text-xs text-slate-700">
-                      {reg.members.map((m, idx) => (
-                        <span key={idx} className="bg-white/80 px-2.5 py-1 rounded-lg border border-slate-200">
-                          {m.title}{m.fullName} ({m.grade}/{m.room} • รหัส {m.studentId})
+                      {reg.members.map((m, mIdx) => (
+                        <span key={mIdx} className="bg-white/90 px-2.5 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1.5 shadow-2xs">
+                          <span>{m.title}{m.fullName} ({m.grade}/{m.room} • รหัส {m.studentId})</span>
+                          {reg.members.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveStudentFromTeam(reg, mIdx, `${m.title}${m.fullName}`)}
+                              className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-0.5 rounded transition-colors"
+                              title="ลบนักเรียนคนนี้ออกจากทีม (กรณีไม่ได้มาแข่งขัน)"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </span>
                       ))}
                     </div>
