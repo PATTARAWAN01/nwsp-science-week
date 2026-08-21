@@ -34,7 +34,9 @@ import {
   ArrowUp,
   ArrowDown,
   UserMinus,
-  Wand2
+  Wand2,
+  UserPlus,
+  Plus
 } from 'lucide-react';
 
 interface StudentResultManagerProps {
@@ -70,6 +72,99 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
 
   // Editing Registration State
   const [editingReg, setEditingReg] = useState<Registration | null>(null);
+
+  // Admin On-Site Registration Modal State
+  const [isAddOnsiteModalOpen, setIsAddOnsiteModalOpen] = useState(false);
+  const [onsiteActivityId, setOnsiteActivityId] = useState<string>(safeActivities[0]?.id || '');
+  const [onsiteLevel, setOnsiteLevel] = useState<'ม.ต้น' | 'ม.ปลาย'>('ม.ต้น');
+  const [onsiteTeamName, setOnsiteTeamName] = useState<string>('');
+  const [onsiteMembers, setOnsiteMembers] = useState<StudentMember[]>([
+    { title: 'นาย', fullName: '', studentId: '', grade: '4', room: '1' }
+  ]);
+
+  const handleOpenAddOnsiteModal = () => {
+    const defaultAct = safeActivities[0];
+    setOnsiteActivityId(defaultAct?.id || '');
+    setOnsiteLevel(defaultAct?.category || 'ม.ต้น');
+    setOnsiteTeamName('');
+    setOnsiteMembers([
+      { title: 'เด็กชาย', fullName: '', studentId: '', grade: '1', room: '1' }
+    ]);
+    setIsAddOnsiteModalOpen(true);
+  };
+
+  const handleAddOnsiteMember = () => {
+    const isHigh = onsiteLevel === 'ม.ปลาย';
+    setOnsiteMembers([
+      ...onsiteMembers,
+      {
+        title: isHigh ? 'นาย' : 'เด็กชาย',
+        fullName: '',
+        studentId: '',
+        grade: isHigh ? '4' : '1',
+        room: '1'
+      }
+    ]);
+  };
+
+  const handleRemoveOnsiteMember = (index: number) => {
+    if (onsiteMembers.length <= 1) {
+      alert("ต้องมีสมาชิกอย่างน้อย 1 คน");
+      return;
+    }
+    setOnsiteMembers(onsiteMembers.filter((_, idx) => idx !== index));
+  };
+
+  const handleSaveOnsiteRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const act = safeActivities.find(a => a.id === onsiteActivityId);
+    if (!act) {
+      alert("กรุณาเลือกกิจกรรมการแข่งขัน");
+      return;
+    }
+
+    const invalidMember = onsiteMembers.find(m => !m.fullName.trim() || !m.studentId.trim());
+    if (invalidMember) {
+      alert("กรุณากรอกชื่อ-นามสกุล และรหัสประจำตัวของสมาชิกทุกคนให้ครบถ้วน");
+      return;
+    }
+
+    const newReg: Registration = {
+      id: `reg-onsite-${Date.now()}`,
+      academicYear,
+      activityId: act.id,
+      activityTitle: act.title,
+      level: onsiteLevel,
+      teamName: onsiteTeamName.trim() || undefined,
+      members: onsiteMembers.map(m => ({
+        ...m,
+        fullName: m.fullName.trim(),
+        studentId: m.studentId.trim()
+      })),
+      registeredAt: new Date().toISOString()
+    };
+
+    await saveRegistration(newReg);
+    setIsAddOnsiteModalOpen(false);
+    onRefresh();
+    alert(`เพิ่มทีมผู้สมัครหน้างานกิจกรรม "${act.title}" (${onsiteLevel}) เรียบร้อยแล้ว!`);
+  };
+
+  const handleAddMemberToEditingReg = () => {
+    if (!editingReg) return;
+    const isHigh = editingReg.level === 'ม.ปลาย';
+    const newMember: StudentMember = {
+      title: isHigh ? 'นาย' : 'เด็กชาย',
+      fullName: '',
+      studentId: '',
+      grade: isHigh ? '4' : '1',
+      room: '1'
+    };
+    setEditingReg({
+      ...editingReg,
+      members: [...editingReg.members, newMember]
+    });
+  };
 
   // Certificate Sequence Configuration State
   const [certSeqConfig, setCertSeqConfig] = useState<CertNumberConfig>({
@@ -922,22 +1017,35 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/60 pb-2.5">
               <div className="flex items-center gap-2 text-xs font-extrabold text-slate-800">
                 <Filter className="w-4 h-4 text-sky-600" />
-                <span>ตัวกรองข้อมูลผู้สมัคร (ค้นหาตามกิจกรรม / ระดับชั้น / ชื่อนักเรียน):</span>
+                <span>ตัวกรองและจัดการข้อมูลผู้สมัคร:</span>
               </div>
 
-              {(applicantFilterActivityId !== 'all' || applicantFilterLevel !== 'all' || searchTerm.trim() !== '') && (
+              <div className="flex items-center gap-2 self-end md:self-auto">
+                {/* On-Site Admin Registration Button */}
                 <button
-                  onClick={() => {
-                    setApplicantFilterActivityId('all');
-                    setApplicantFilterLevel('all');
-                    setSearchTerm('');
-                  }}
-                  className="text-xs font-bold text-rose-600 hover:text-rose-800 underline flex items-center gap-1 self-end md:self-auto"
+                  type="button"
+                  onClick={handleOpenAddOnsiteModal}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 shrink-0"
+                  title="เพิ่มทีมหรือรายชื่อผู้สมัครหน้างานย้อนหลัง (สำหรับแอดมิน สมัครได้ทุกกิจกรรมแม้จะปิดรับสมัครแล้ว)"
                 >
-                  <X className="w-3.5 h-3.5" />
-                  ล้างตัวกรองทั้งหมด
+                  <UserPlus className="w-4 h-4" />
+                  เพิ่มทีม/ผู้สมัครหน้างาน ➕
                 </button>
-              )}
+
+                {(applicantFilterActivityId !== 'all' || applicantFilterLevel !== 'all' || searchTerm.trim() !== '') && (
+                  <button
+                    onClick={() => {
+                      setApplicantFilterActivityId('all');
+                      setApplicantFilterLevel('all');
+                      setSearchTerm('');
+                    }}
+                    className="text-xs font-bold text-rose-600 hover:text-rose-800 underline flex items-center gap-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    ล้างตัวกรอง
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1644,6 +1752,16 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                     </div>
                   </div>
                 ))}
+
+                {/* Add New Member Button in Edit Modal */}
+                <button
+                  type="button"
+                  onClick={handleAddMemberToEditingReg}
+                  className="w-full py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  เพิ่มสมาชิกในทีมเพิ่มอีก 1 คน ➕
+                </button>
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
@@ -1659,6 +1777,230 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                   className="px-6 py-2 bg-sky-600 text-white rounded-xl text-sm font-bold shadow-md"
                 >
                   บันทึกการแก้ไข
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin On-Site Registration Modal */}
+      {isAddOnsiteModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto border border-emerald-100">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">เพิ่มทีม / ลงทะเบียนผู้สมัครหน้างาน (Admin Bypass)</h3>
+                  <p className="text-xs text-slate-500">สำหรับแอดมินเพิ่มรายชื่อย้อนหลังได้ทุกกิจกรรมแม้จะปิดรับสมัครแล้ว</p>
+                </div>
+              </div>
+              <button onClick={() => setIsAddOnsiteModalOpen(false)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOnsiteRegistration} className="space-y-4">
+              {/* Activity Select */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">1. เลือกกิจกรรมการแข่งขัน *</label>
+                <select
+                  value={onsiteActivityId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setOnsiteActivityId(id);
+                    const act = safeActivities.find(a => a.id === id);
+                    if (act && act.category) setOnsiteLevel(act.category);
+                  }}
+                  className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 border-slate-300 bg-white"
+                  required
+                >
+                  {safeActivities.map(act => (
+                    <option key={act.id} value={act.id}>
+                      {act.title} ({act.category || 'ทุกระดับ'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Level Select */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">2. เลือกระดับชั้น *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOnsiteLevel('ม.ต้น')}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs transition-all ${
+                      onsiteLevel === 'ม.ต้น' ? 'bg-sky-600 text-white shadow-md' : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    มัธยมศึกษาตอนต้น (ม.ต้น)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOnsiteLevel('ม.ปลาย')}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs transition-all ${
+                      onsiteLevel === 'ม.ปลาย' ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    มัธยมศึกษาตอนปลาย (ม.ปลาย)
+                  </button>
+                </div>
+              </div>
+
+              {/* Team Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">3. ชื่อทีม (ถ้ามี / เว้นว่างได้กรณีแข่งเดี่ยว)</label>
+                <input
+                  type="text"
+                  placeholder="ระบุชื่อทีม (ถ้ามี)..."
+                  value={onsiteTeamName}
+                  onChange={(e) => setOnsiteTeamName(e.target.value)}
+                  className="w-full glass-input px-3.5 py-2 rounded-xl text-xs font-semibold border-slate-300"
+                />
+              </div>
+
+              {/* Members List */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-800">
+                    4. รายชื่อสมาชิกผู้แข่งขัน ({onsiteMembers.length} คน) *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddOnsiteMember}
+                    className="px-2.5 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> เพิ่มสมาชิกในทีม
+                  </button>
+                </div>
+
+                {onsiteMembers.map((m, idx) => (
+                  <div key={idx} className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center justify-between font-bold text-emerald-800 border-b pb-1">
+                      <span>สมาชิกคนที่ {idx + 1}</span>
+                      {onsiteMembers.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOnsiteMember(idx)}
+                          className="text-rose-500 hover:text-rose-700 font-normal flex items-center gap-0.5"
+                        >
+                          <Trash2 className="w-3 h-3" /> ลบสมาชิกคนนี้
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] text-slate-600 mb-1">รหัสนักเรียน (5 หลัก) *</label>
+                        <input
+                          type="text"
+                          maxLength={5}
+                          placeholder="เช่น 13456"
+                          value={m.studentId}
+                          onChange={(e) => {
+                            const updated = [...onsiteMembers];
+                            updated[idx].studentId = e.target.value;
+                            setOnsiteMembers(updated);
+                          }}
+                          className="glass-input p-2 rounded-lg font-mono w-full"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-600 mb-1">คำนำหน้าชื่อ *</label>
+                        <select
+                          value={m.title}
+                          onChange={(e) => {
+                            const updated = [...onsiteMembers];
+                            updated[idx].title = e.target.value as StudentTitle;
+                            setOnsiteMembers(updated);
+                          }}
+                          className="glass-input p-2 rounded-lg w-full font-bold"
+                        >
+                          <option value="เด็กชาย">เด็กชาย</option>
+                          <option value="เด็กหญิง">เด็กหญิง</option>
+                          <option value="นาย">นาย</option>
+                          <option value="นางสาว">นางสาว</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-[11px] text-slate-600 mb-1">ชื่อ - นามสกุล *</label>
+                        <input
+                          type="text"
+                          placeholder="เช่น นายสมชาย ใจดี"
+                          value={m.fullName}
+                          onChange={(e) => {
+                            const updated = [...onsiteMembers];
+                            updated[idx].fullName = e.target.value;
+                            setOnsiteMembers(updated);
+                          }}
+                          className="glass-input p-2 rounded-lg w-full font-semibold"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-600 mb-1">ระดับชั้น *</label>
+                        <select
+                          value={m.grade}
+                          onChange={(e) => {
+                            const updated = [...onsiteMembers];
+                            updated[idx].grade = e.target.value as StudentGrade;
+                            setOnsiteMembers(updated);
+                          }}
+                          className="glass-input p-2 rounded-lg w-full font-bold text-sky-800"
+                        >
+                          <option value="ม.1">ม.1</option>
+                          <option value="ม.2">ม.2</option>
+                          <option value="ม.3">ม.3</option>
+                          <option value="ม.4">ม.4</option>
+                          <option value="ม.5">ม.5</option>
+                          <option value="ม.6">ม.6</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-600 mb-1">ห้องเรียน *</label>
+                        <select
+                          value={m.room}
+                          onChange={(e) => {
+                            const updated = [...onsiteMembers];
+                            updated[idx].room = parseInt(e.target.value);
+                            setOnsiteMembers(updated);
+                          }}
+                          className="glass-input p-2 rounded-lg w-full font-bold text-purple-800"
+                        >
+                          <option value={1}>ห้อง 1</option>
+                          <option value={2}>ห้อง 2</option>
+                          <option value={3}>ห้อง 3</option>
+                          <option value={4}>ห้อง 4</option>
+                          <option value={5}>ห้อง 5</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsAddOnsiteModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white rounded-xl text-xs font-extrabold shadow-md flex items-center gap-1.5"
+                >
+                  <UserPlus className="w-4 h-4" /> บันทึกผู้สมัครหน้างาน 💾
                 </button>
               </div>
             </form>
