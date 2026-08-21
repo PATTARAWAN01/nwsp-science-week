@@ -287,8 +287,10 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     e.preventDefault();
     if (!recordingReg) return;
 
+    const existingRes = safeResults.find(r => r && r.registrationId === recordingReg.id && r.academicYear === academicYear);
+
     const newResult: CompetitionResult = {
-      id: `res-${Date.now()}`,
+      id: existingRes ? existingRes.id : `res-${Date.now()}`,
       academicYear,
       activityId: recordingReg.activityId,
       activityTitle: recordingReg.activityTitle,
@@ -1173,8 +1175,17 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                             🏆 {existingResult.award} {existingResult.certificateId && `(รหัส: ${existingResult.certificateId})`}
                           </span>
                           <button
+                            type="button"
+                            onClick={() => handleOpenRecordAwardModal(reg)}
+                            className="px-2.5 py-1 bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                            title="แก้ไขผลรางวัลหรือรหัสเกียรติบัตร"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" /> แก้ไขรางวัล
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleDeleteResult(existingResult.id)}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-bold"
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-bold transition-colors"
                             title="ลบผลการแข่งขัน"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

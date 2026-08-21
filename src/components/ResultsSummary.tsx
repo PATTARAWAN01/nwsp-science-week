@@ -16,12 +16,29 @@ export const ResultsSummary: React.FC<ResultsSummaryProps> = ({
   const [selectedActivityId, setSelectedActivityId] = useState<string>('all');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
 
-  const filteredResults = results.filter(res => {
-    const matchesYear = res.academicYear === academicYear;
-    const matchesActivity = selectedActivityId === 'all' || res.activityId === selectedActivityId;
-    const matchesLevel = selectedLevel === 'all' || res.level === selectedLevel;
-    return matchesYear && matchesActivity && matchesLevel;
-  });
+  const AWARD_RANK_WEIGHT: Record<string, number> = {
+    'รางวัลชนะเลิศ': 1,
+    'รองชนะเลิศอันดับ 1': 2,
+    'รองชนะเลิศอันดับ 2': 3,
+    'รางวัลชมเชย': 4,
+    'เข้าร่วมการแข่งขัน': 5,
+  };
+
+  const filteredResults = results
+    .filter(res => {
+      const matchesYear = res.academicYear === academicYear;
+      const matchesActivity = selectedActivityId === 'all' || res.activityId === selectedActivityId;
+      const matchesLevel = selectedLevel === 'all' || res.level === selectedLevel;
+      return matchesYear && matchesActivity && matchesLevel;
+    })
+    .sort((a, b) => {
+      const weightA = AWARD_RANK_WEIGHT[a.award] ?? 99;
+      const weightB = AWARD_RANK_WEIGHT[b.award] ?? 99;
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+      return (a.activityTitle || '').localeCompare(b.activityTitle || '');
+    });
 
   const getAwardBadge = (award: string) => {
     switch (award) {
