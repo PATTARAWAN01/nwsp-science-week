@@ -33,7 +33,8 @@ import {
   GripVertical,
   ArrowUp,
   ArrowDown,
-  UserMinus
+  UserMinus,
+  Wand2
 } from 'lucide-react';
 
 interface StudentResultManagerProps {
@@ -162,6 +163,53 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
     reordered.splice(dropIndex, 0, movedItem);
 
     setDraggedTeamIndex(null);
+
+    for (let i = 0; i < reordered.length; i++) {
+      const item = { ...reordered[i], order: i + 1 };
+      await saveRegistration(item);
+    }
+    onRefresh();
+  };
+
+  // 1-Click Auto-Sort Teams by Award Rank (ชนะเลิศ -> รองอันดับ 1 -> รองอันดับ 2 -> ชมเชย -> เข้าร่วม)
+  const handleAutoSortTeamsByAward = async () => {
+    if (activityRegistrations.length === 0) return;
+
+    const AWARD_WEIGHTS: Record<string, number> = {
+      'รางวัลชนะเลิศ': 1,
+      'รองชนะเลิศอันดับ 1': 2,
+      'รองชนะเลิศอันดับ 2': 3,
+      'รางวัลชมเชย': 4,
+      'เข้าร่วมการแข่งขัน': 5
+    };
+
+    const sortedList = [...activityRegistrations].sort((a, b) => {
+      const resA = safeResults.find(r => r.registrationId === a.id && r.academicYear === academicYear);
+      const resB = safeResults.find(r => r.registrationId === b.id && r.academicYear === academicYear);
+
+      const weightA = resA ? (AWARD_WEIGHTS[resA.award] ?? 90) : 99;
+      const weightB = resB ? (AWARD_WEIGHTS[resB.award] ?? 90) : 99;
+
+      if (weightA !== weightB) return weightA - weightB;
+      return (a.order ?? 99) - (b.order ?? 99);
+    });
+
+    for (let i = 0; i < sortedList.length; i++) {
+      const item = { ...sortedList[i], order: i + 1 };
+      await saveRegistration(item);
+    }
+    onRefresh();
+    alert("เรียงลำดับการ์ดทีมตามผลรางวัล (ชนะเลิศ ➔ รองอันดับ 1 ➔ รองอันดับ 2 ➔ ชมเชย ➔ เข้าร่วม) เรียบร้อยแล้ว!");
+  };
+
+  // Direct Select Team Rank Order Dropdown Handler
+  const handleSelectTeamOrder = async (currentIndex: number, newPosition: number) => {
+    const targetIndex = newPosition - 1;
+    if (targetIndex < 0 || targetIndex >= activityRegistrations.length || targetIndex === currentIndex) return;
+
+    const reordered = [...activityRegistrations];
+    const [movedItem] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
 
     for (let i = 0; i < reordered.length; i++) {
       const item = { ...reordered[i], order: i + 1 };
@@ -1083,24 +1131,38 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
           </div>
 
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold text-slate-700 px-3 py-3 bg-white/90 rounded-2xl border border-purple-200/80 shadow-2xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-bold text-slate-700 px-3.5 py-3 bg-white/90 rounded-2xl border border-purple-200/80 shadow-2xs">
               <div className="flex flex-wrap items-center gap-2">
                 <Trophy className="w-4 h-4 text-amber-600" />
                 <span>รายชื่อทีม/ผู้สมัครกิจกรรม "{currentActivity?.title}" ({selectedLevel}):</span>
                 <span className="bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md font-extrabold">รวม {activityRegistrations.length} ทีม</span>
               </div>
 
-              {/* Requirement: 1-Click Batch Export All Certificates PDF */}
-              <button
-                type="button"
-                onClick={handleExportBatchPDF}
-                disabled={isExportingBatchPDF || activityRegistrations.length === 0}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:opacity-95 text-white rounded-xl font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                title="คลิกเดียวเพื่อส่งออกเกียรติบัตรทุกรายชื่อในกิจกรรมนี้เป็นไฟล์ PDF รวมทุกหน้า"
-              >
-                <Printer className="w-4 h-4" />
-                ส่งออกเกียรติบัตรทุกรายชื่อ (PDF รวมทุกหน้า) 📄
-              </button>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {/* 1-Click Auto-Sort Teams by Award Rank */}
+                <button
+                  type="button"
+                  onClick={handleAutoSortTeamsByAward}
+                  disabled={activityRegistrations.length === 0}
+                  className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-95 text-white rounded-xl font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="คลิกเดียวเพื่อจัดเรียงลำดับการ์ดทีมตามผลรางวัล (ชนะเลิศ -> รองอันดับ 1 -> รองอันดับ 2 -> ชมเชย -> เข้าร่วม) อัตโนมัติ"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  จัดเรียงตามผลรางวัลอัตโนมัติ 🪄
+                </button>
+
+                {/* Requirement: 1-Click Batch Export All Certificates PDF */}
+                <button
+                  type="button"
+                  onClick={handleExportBatchPDF}
+                  disabled={isExportingBatchPDF || activityRegistrations.length === 0}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:opacity-95 text-white rounded-xl font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="คลิกเดียวเพื่อส่งออกเกียรติบัตรทุกรายชื่อในกิจกรรมนี้เป็นไฟล์ PDF รวมทุกหน้า"
+                >
+                  <Printer className="w-4 h-4" />
+                  ส่งออกเกียรติบัตรทุกรายชื่อ (PDF รวมทุกหน้า) 📄
+                </button>
+              </div>
             </div>
 
             {activityRegistrations.length === 0 ? (
@@ -1129,9 +1191,23 @@ export const StudentResultManager: React.FC<StudentResultManagerProps> = ({
                         <span className="p-1 rounded-lg hover:bg-slate-100 cursor-grab active:cursor-grabbing text-slate-400 hover:text-purple-600 transition-colors" title="ลากเพื่อจัดอันดับการแสดงผลและออกเกียรติบัตรของทีมนี้">
                           <GripVertical className="w-4 h-4" />
                         </span>
-                        <span className="w-5 h-5 rounded-full bg-slate-800 text-white font-extrabold text-[11px] flex items-center justify-center">
-                          {idx + 1}
-                        </span>
+
+                        {/* Direct Select Rank Dropdown Selector */}
+                        <div className="flex items-center gap-1 border-r border-slate-200 pr-2 mr-1">
+                          <span className="text-[11px] font-bold text-slate-500">ลำดับที่:</span>
+                          <select
+                            value={idx + 1}
+                            onChange={(e) => handleSelectTeamOrder(idx, parseInt(e.target.value))}
+                            className="glass-input px-1.5 py-0.5 rounded-lg text-xs font-extrabold text-purple-800 border-purple-200 bg-white"
+                            title="คลิกเพื่อเลือกอันดับที่ต้องการสลับตำแหน่งทันที"
+                          >
+                            {activityRegistrations.map((_, posIdx) => (
+                              <option key={posIdx + 1} value={posIdx + 1}>
+                                {posIdx + 1}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
                         {/* Reorder Buttons (Arrow Up / Down) */}
                         <div className="flex items-center gap-0.5 border-r border-slate-200 pr-2 mr-1">
